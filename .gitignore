@@ -1,0 +1,22 @@
+# Judge0 — local config with secrets (copy from judge0.conf.example)
+judge0-v1.13.1/judge0.conf
+
+# Local secrets / env
+**/.env
+**/.env.*
+**/application-local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+*.log
+logs/
