@@ -9,6 +9,8 @@ import com.arena.cpj.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,7 +47,16 @@ public class LeaderboardService {
         entry.setLastAcTime(acTime);
         leaderboardRepository.save(entry);
 
-        sseService.broadcastLeaderboard(getLeaderboard(contest.getId()));
+                if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                        sseService.broadcastLeaderboard(getLeaderboard(contest.getId()));
+                                }
+                        });
+                } else {
+                        sseService.broadcastLeaderboard(getLeaderboard(contest.getId()));
+                }
     }
 
     @Transactional(readOnly = true)

@@ -31,4 +31,19 @@ public class Contest {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private ContestStatus status = ContestStatus.UPCOMING;
+
+    /**
+     * Check if contest time has expired (current time > start + duration)
+     */
+    public boolean isExpired() {
+        LocalDateTime endTime = startTime.plusMinutes(durationMins);
+        return LocalDateTime.now().isAfter(endTime);
+    }
+
+    /**
+     * Check if contest has started (current time >= start time)
+     */
+    public boolean hasStarted() {
+        return LocalDateTime.now().isAfter(startTime) || LocalDateTime.now().equals(startTime);
+    }
 }

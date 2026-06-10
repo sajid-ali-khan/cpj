@@ -64,4 +64,15 @@ public class SseService {
             }
         });
     }
+
+    public void broadcastContestEvent(Object event) {
+        emitters.forEach((userId, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event().name("contest").data(event));
+            } catch (IOException ex) {
+                log.warn("Failed to broadcast contest SSE to user {}", userId, ex);
+                remove(userId, emitter);
+            }
+        });
+    }
 }

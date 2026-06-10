@@ -1,5 +1,6 @@
 package com.arena.cpj.config;
 
+import com.arena.cpj.auth.AdminAuthInterceptor;
 import com.arena.cpj.auth.RollNoAuthInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -14,12 +15,15 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
 
     private final RollNoAuthInterceptor rollNoAuthInterceptor;
+    private final AdminAuthInterceptor adminAuthInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rollNoAuthInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/internal/**");
+                .excludePathPatterns("/internal/**", "/api/contests/current");
+        registry.addInterceptor(adminAuthInterceptor)
+                .addPathPatterns("/api/admin/**");
     }
 
     @Override

@@ -12,6 +12,8 @@ services:
       - ./judge0.conf:/judge0.conf:ro
     ports:
       - "2358:2358"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     privileged: true
     <<: *default-logging
     restart: always
@@ -21,6 +23,8 @@ services:
     command: ["./scripts/workers"]
     volumes:
       - ./judge0.conf:/judge0.conf:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     privileged: true
     <<: *default-logging
     restart: always

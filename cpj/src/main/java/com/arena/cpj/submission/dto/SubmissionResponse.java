@@ -13,6 +13,7 @@ public class SubmissionResponse {
     private final Long id;
     private final Long problemId;
     private final Integer languageId;
+    private final String code;
     private final Verdict verdict;
     private final Integer timeMs;
     private final Integer memoryKb;

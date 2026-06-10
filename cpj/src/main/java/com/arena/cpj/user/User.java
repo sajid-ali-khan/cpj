@@ -24,4 +24,9 @@ public class User {
 
     @Column(length = 50)
     private String branch;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserRole role = UserRole.STUDENT;
 }

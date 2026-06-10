@@ -8,6 +8,8 @@ import com.arena.cpj.submission.dto.VerdictEventDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 
@@ -37,22 +39,40 @@ public class SubmissionResultService {
         submission.setTimeMs(timeMs);
         submission.setMemoryKb(memoryKb);
         submissionRepository.save(submission);
-        sessionTracker.remove(submissionId);
 
-        sseService.sendVerdict(submission.getUser().getId(), VerdictEventDto.builder()
-                .submissionId(submission.getId())
-                .problemId(submission.getProblem().getId())
-                .verdict(verdict)
-                .timeMs(timeMs)
-                .memoryKb(memoryKb)
-                .build());
+                Long userId = submission.getUser().getId();
+                Long contestId = submission.getContest().getId();
+                Long problemId = submission.getProblem().getId();
 
-        if (isFirstAc) {
-            leaderboardService.recordFirstAcceptedSubmission(
-                    submission.getUser(),
-                    submission.getContest(),
-                    submission.getProblem().getId(),
-                    LocalDateTime.now());
-        }
+                Runnable afterCommit = () -> {
+                        sessionTracker.remove(submissionId);
+
+                        sseService.sendVerdict(userId, VerdictEventDto.builder()
+                                        .submissionId(submission.getId())
+                                        .problemId(problemId)
+                                        .verdict(verdict)
+                                        .timeMs(timeMs)
+                                        .memoryKb(memoryKb)
+                                        .build());
+
+                        if (isFirstAc) {
+                                leaderboardService.recordFirstAcceptedSubmission(
+                                                submission.getUser(),
+                                                submission.getContest(),
+                                                problemId,
+                                                LocalDateTime.now());
+                        }
+                };
+
+                if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                        afterCommit.run();
+                                }
+                        });
+                } else {
+                        afterCommit.run();
+                }
     }
 }

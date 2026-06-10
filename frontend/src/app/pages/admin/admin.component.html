@@ -1,0 +1,181 @@
+<div class="page">
+  <header class="header">
+    <div>
+      <p class="eyebrow">Administration</p>
+      <h1>Contest setup</h1>
+    </div>
+    @if (loggedIn()) {
+      <button type="button" class="btn btn-ghost" (click)="logout()">Logout</button>
+    }
+  </header>
+
+  @if (!loggedIn()) {
+    <section class="card login-card">
+      <h2>Admin login</h2>
+      <p class="hint">Use an admin roll number (default: <code>ADMIN001</code>).</p>
+      <label>
+        Roll number
+        <input type="text" [(ngModel)]="rollNoInput" placeholder="ADMIN001" />
+      </label>
+      <button type="button" class="btn btn-primary" (click)="login()">Login</button>
+    </section>
+  } @else {
+    <nav class="tabs">
+      <button type="button" [class.active]="tab() === 'users'" (click)="setTab('users')">Users</button>
+      <button type="button" [class.active]="tab() === 'problems'" (click)="setTab('problems')">Problems</button>
+      <button type="button" [class.active]="tab() === 'contests'" (click)="setTab('contests')">Contests</button>
+    </nav>
+
+    @if (message()) {
+      <p class="banner success">{{ message() }}</p>
+    }
+
+    @if (tab() === 'users') {
+      <section class="card">
+        <h2>Add user</h2>
+        <div class="form-grid">
+          <label>Name <input [(ngModel)]="userForm.name" /></label>
+          <label>Roll no <input [(ngModel)]="userForm.rollNo" /></label>
+          <label>Branch <input [(ngModel)]="userForm.branch" /></label>
+          <label>
+            Role
+            <select [(ngModel)]="userForm.role">
+              <option value="STUDENT">Student</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </label>
+        </div>
+        <button type="button" class="btn btn-primary" (click)="createUser()">Create user</button>
+
+        <h3 class="section-title">All users</h3>
+        <table class="data-table">
+          <thead><tr><th>Roll</th><th>Name</th><th>Branch</th><th>Role</th></tr></thead>
+          <tbody>
+            @for (u of users(); track u.id) {
+              <tr>
+                <td>{{ u.rollNo }}</td>
+                <td>{{ u.name }}</td>
+                <td>{{ u.branch || '—' }}</td>
+                <td>{{ u.role }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    @if (tab() === 'problems') {
+      <div class="split">
+        <section class="card">
+          <h2>Add problem</h2>
+          <label>Title <input [(ngModel)]="problemForm.title" /></label>
+          <label>Description <textarea [(ngModel)]="problemForm.description" rows="5"></textarea></label>
+          <label>Constraints <input [(ngModel)]="problemForm.constraints" /></label>
+          <label>
+            Difficulty
+            <select [(ngModel)]="problemForm.difficulty">
+              <option value="EASY">Easy</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HARD">Hard</option>
+            </select>
+          </label>
+          <button type="button" class="btn btn-primary" (click)="createProblem()">Create problem</button>
+
+          <h3 class="section-title">Problems</h3>
+          <ul class="pick-list">
+            @for (p of problems(); track p.id) {
+              <li>
+                <button type="button" [class.selected]="selectedProblemId === p.id" (click)="selectProblem(p.id)">
+                  <strong>{{ p.title }}</strong>
+                  <span>{{ p.testCaseCount }} test cases</span>
+                </button>
+              </li>
+            }
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Test cases</h2>
+          @if (!selectedProblemId) {
+            <p class="hint">Select a problem to manage test cases.</p>
+          } @else {
+            <label>Stdin <textarea [(ngModel)]="testCaseForm.stdin" rows="3"></textarea></label>
+            <label>Expected output <textarea [(ngModel)]="testCaseForm.expectedOutput" rows="3"></textarea></label>
+            <label class="checkbox">
+              <input type="checkbox" [(ngModel)]="testCaseForm.isSample" /> Sample (visible to students)
+            </label>
+            <button type="button" class="btn btn-primary" (click)="createTestCase()">Add test case</button>
+
+            <ul class="tc-list">
+              @for (tc of testCases(); track tc.id) {
+                <li>
+                  <div class="tc-head">
+                    <span>#{{ tc.id }} {{ tc.isSample ? '(sample)' : '(hidden)' }}</span>
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="deleteTestCase(tc.id)">Delete</button>
+                  </div>
+                  <pre>{{ tc.stdin || '(empty)' }} → {{ tc.expectedOutput }}</pre>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      </div>
+    }
+
+    @if (tab() === 'contests') {
+      <section class="card">
+        <h2>Create contest</h2>
+        <div class="form-grid">
+          <label>Title <input [(ngModel)]="contestForm.title" /></label>
+          <label>Start time <input type="datetime-local" [(ngModel)]="contestForm.startTime" /></label>
+          <label>Duration (mins) <input type="number" [(ngModel)]="contestForm.durationMins" /></label>
+          <label>Points per problem <input type="number" [(ngModel)]="contestForm.points" /></label>
+        </div>
+
+        <h3 class="section-title">Select problems</h3>
+        <div class="problem-checks">
+          @for (p of problems(); track p.id) {
+            <label class="checkbox">
+              <input
+                type="checkbox"
+                [checked]="isProblemSelected(p.id)"
+                (change)="toggleContestProblem(p.id, $any($event.target).checked)"
+              />
+              {{ p.title }}
+            </label>
+          }
+        </div>
+        <button type="button" class="btn btn-primary" (click)="createContest()">Create contest</button>
+
+        <h3 class="section-title">All contests</h3>
+        <table class="data-table">
+          <thead><tr><th>Title</th><th>Status</th><th>Problems</th><th>Actions</th></tr></thead>
+          <tbody>
+            @for (c of contests(); track c.id) {
+              <tr>
+                <td>{{ c.title }}</td>
+                <td><span class="status" [class]="'status-' + c.status.toLowerCase()">{{ c.status }}</span></td>
+                <td>{{ c.problems.length }}</td>
+                <td class="actions">
+                  @if (c.status !== 'ONGOING') {
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="startContest(c.id)">Start</button>
+                  }
+                  @if (canEndContest(c)) {
+                    <button type="button" class="btn btn-ghost btn-sm" (click)="endContest(c.id)">End</button>
+                  }
+                  @if (c.status === 'ONGOING' && isContestTimeExpired(c)) {
+                    <span style="color: #999; font-size: 0.9em">Expired</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+  }
+
+  @if (error()) {
+    <p class="error-banner">{{ error() }}</p>
+  }
+</div>
