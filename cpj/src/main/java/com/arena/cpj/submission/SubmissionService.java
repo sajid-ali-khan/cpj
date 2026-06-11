@@ -34,27 +34,49 @@ public class SubmissionService {
 
     @Transactional
     public SubmitResponse submit(User user, Long contestId, Long problemId, String code, Integer languageId) {
-        validateSubmitRequest(contestId, problemId, code, languageId);
-
+        log.info("=== Submission Flow Started ===");
+        log.info("Request Details - User: {}, Contest ID: {}, Problem ID: {}, Language ID: {}", 
+                 user != null ? user.getName() + " (RollNo: " + user.getRollNo() + ", ID: " + user.getId() + ")" : "Anonymous", 
+                 contestId, problemId, languageId);
+        log.info("Submitted Source Code:\n{}", code);
+ 
+        try {
+            validateSubmitRequest(contestId, problemId, code, languageId);
+        } catch (BadRequestException e) {
+            log.warn("Validation failed for submission request: {}", e.getMessage());
+            throw e;
+        }
+ 
         Contest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
+                .orElseThrow(() -> {
+                    log.warn("Contest validation failed: Contest ID {} not found", contestId);
+                    return new NotFoundException("Contest not found: " + contestId);
+                });
         
         // Guard 1: Check contest status is ONGOING
         if (contest.getStatus() != ContestStatus.ONGOING) {
+            log.warn("Contest validation failed: Contest ID {} status is {}", contestId, contest.getStatus());
             throw new BadRequestException("Contest is not active");
         }
         
         // Guard 2: Check contest hasn't expired (closes the scheduler gap)
         if (contest.isExpired()) {
+            log.warn("Contest validation failed: Contest ID {} has expired", contestId);
             throw new BadRequestException("Contest has ended");
         }
-
+ 
         contestProblemRepository.findByIdContestIdAndIdProblemId(contestId, problemId)
-                .orElseThrow(() -> new BadRequestException("Problem is not part of this contest"));
-
+                .orElseThrow(() -> {
+                    log.warn("Problem validation failed: Problem ID {} is not part of Contest ID {}", problemId, contestId);
+                    return new BadRequestException("Problem is not part of this contest");
+                });
+ 
         Problem problem = problemRepository.findById(problemId)
-                .orElseThrow(() -> new NotFoundException("Problem not found: " + problemId));
-
+                .orElseThrow(() -> {
+                    log.warn("Problem validation failed: Problem ID {} not found", problemId);
+                    return new NotFoundException("Problem not found: " + problemId);
+                });
+ 
         Submission submission = Submission.builder()
                 .user(user)
                 .contest(contest)
@@ -64,18 +86,23 @@ public class SubmissionService {
                 .verdict(Verdict.PENDING)
                 .build();
         submission = submissionRepository.save(submission);
-
+        log.info("Submission saved to DB. Generated Submission ID: {}", submission.getId());
+ 
         Long submissionId = submission.getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            log.info("Transaction synchronization active. Registering afterCommit synchronization to dispatch submission ID: {}", submissionId);
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
+                    log.info("Transaction committed. Dispatching submission ID: {}", submissionId);
                     judgeDispatchService.dispatch(submissionId);
                 }
             });
         } else {
+            log.info("Transaction synchronization not active. Dispatching submission ID immediately: {}", submissionId);
             judgeDispatchService.dispatch(submissionId);
         }
+        log.info("=== Submission Flow Completed (ID: {}) ===", submission.getId());
         return SubmitResponse.builder().submissionId(submission.getId()).build();
     }
 

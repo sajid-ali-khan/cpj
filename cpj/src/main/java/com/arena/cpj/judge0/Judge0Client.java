@@ -1,12 +1,15 @@
 package com.arena.cpj.judge0;
 
 import com.arena.cpj.config.Judge0Properties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,6 +19,7 @@ import java.util.stream.Collectors;
 public class Judge0Client {
 
     private final Judge0Properties properties;
+    private final ObjectMapper objectMapper;
 
     /**
      * RestClient with explicit timeouts.
@@ -62,7 +66,7 @@ public class Judge0Client {
     public List<Judge0CallbackPayload> submitBatchAndWait(List<Judge0SubmissionRequest> requests) {
         // Step 1: send all testcases in one POST
         List<String> tokens = submitBatch(requests);
-        log.debug("Batch submitted {} testcase(s). Tokens: {}", tokens.size(), tokens);
+        log.info("Batch submitted {} testcase(s). Tokens: {}", tokens.size(), tokens);
 
         // Step 2: poll until every token is resolved
         String tokenParam = String.join(",", tokens);
@@ -77,7 +81,7 @@ public class Judge0Client {
             });
 
             if (allDone) {
-                log.debug("Batch resolved after {} poll(s)", attempt + 1);
+                log.info("Batch resolved after {} poll(s). Results: {}", attempt + 1, results);
                 return results;
             }
 
@@ -85,7 +89,7 @@ public class Judge0Client {
                 int id = r.getStatus() != null ? r.getStatus().getId() : 0;
                 return id == STATUS_IN_QUEUE || id == STATUS_PROCESSING;
             }).count();
-            log.debug("Batch poll {}/{}: {}/{} token(s) still pending",
+            log.info("Batch poll {}/{}: {}/{} token(s) still pending",
                     attempt + 1, MAX_POLLS, pending, tokens.size());
         }
 
@@ -98,17 +102,39 @@ public class Judge0Client {
      * The POST body is {@code {"submissions": [...]}} per the Judge0 API.
      */
     public List<String> submitBatch(List<Judge0SubmissionRequest> requests) {
+        List<Judge0SubmissionRequest> encodedRequests = requests.stream()
+                .map(this::encodeRequest)
+                .toList();
+
         Judge0BatchRequest body = Judge0BatchRequest.builder()
-                .submissions(requests)
+                .submissions(encodedRequests)
                 .build();
+        String bodyJson = "";
+        try {
+            bodyJson = objectMapper.writeValueAsString(body);
+            log.info("Sending batch submit request to Judge0: {}", bodyJson);
+        } catch (Exception e) {
+            log.warn("Failed to log batch submit request payload", e);
+        }
 
         // The response is a flat JSON array: [{token: "..."}, {token: "..."}, ...]
         // We use Judge0SubmissionResponse[] to deserialise it.
-        Judge0SubmissionResponse[] response = restClient.post()
-                .uri(properties.getBaseUrl() + "/submissions/batch?base64_encoded=false")
-                .body(body)
+        String rawResponse = restClient.post()
+                .uri(properties.getBaseUrl() + "/submissions/batch?base64_encoded=true")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(bodyJson)
                 .retrieve()
-                .body(Judge0SubmissionResponse[].class);
+                .body(String.class);
+
+        log.info("Received batch submit raw response from Judge0: {}", rawResponse);
+
+        Judge0SubmissionResponse[] response;
+        try {
+            response = objectMapper.readValue(rawResponse, Judge0SubmissionResponse[].class);
+        } catch (Exception e) {
+            log.error("Failed to parse batch submit response", e);
+            throw new IllegalStateException("Failed to parse Judge0 batch submit response", e);
+        }
 
         if (response == null || response.length == 0) {
             throw new IllegalStateException("Judge0 batch submit returned no tokens");
@@ -122,28 +148,59 @@ public class Judge0Client {
      * {@code GET /submissions/batch?tokens=t1,t2,...} — fetches current state of all tokens.
      */
     public List<Judge0CallbackPayload> getBatch(String commaSeparatedTokens) {
-        Judge0BatchResponse response = restClient.get()
+        log.info("Polling batch status from Judge0 for tokens: {}", commaSeparatedTokens);
+        String rawResponse = restClient.get()
                 .uri(properties.getBaseUrl()
                         + "/submissions/batch?tokens=" + commaSeparatedTokens
-                        + "&base64_encoded=false")
+                        + "&base64_encoded=true")
                 .retrieve()
-                .body(Judge0BatchResponse.class);
+                .body(String.class);
+
+        log.info("Received batch status raw response from Judge0: {}", rawResponse);
+
+        Judge0BatchResponse response;
+        try {
+            response = objectMapper.readValue(rawResponse, Judge0BatchResponse.class);
+        } catch (Exception e) {
+            log.error("Failed to parse batch status response", e);
+            throw new IllegalStateException("Failed to parse Judge0 batch status response", e);
+        }
 
         if (response == null || response.getSubmissions() == null) {
             throw new IllegalStateException("Judge0 batch GET returned null");
         }
-        return response.getSubmissions();
+        return decodePayloads(response.getSubmissions());
     }
 
     // ─── Single-submission API (kept for reference / future use) ────────────
 
     /** Submit a single submission with {@code wait=false}, returns token. */
     public String submitAsync(Judge0SubmissionRequest request) {
-        Judge0SubmissionResponse response = restClient.post()
-                .uri(properties.getBaseUrl() + "/submissions?base64_encoded=false&wait=false")
-                .body(request)
+        Judge0SubmissionRequest encodedRequest = encodeRequest(request);
+        String bodyJson = "";
+        try {
+            bodyJson = objectMapper.writeValueAsString(encodedRequest);
+            log.info("Sending submitAsync request to Judge0: {}", bodyJson);
+        } catch (Exception e) {
+            log.warn("Failed to log submitAsync request payload", e);
+        }
+
+        String rawResponse = restClient.post()
+                .uri(properties.getBaseUrl() + "/submissions?base64_encoded=true&wait=false")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(bodyJson)
                 .retrieve()
-                .body(Judge0SubmissionResponse.class);
+                .body(String.class);
+
+        log.info("Received submitAsync raw response from Judge0: {}", rawResponse);
+
+        Judge0SubmissionResponse response;
+        try {
+            response = objectMapper.readValue(rawResponse, Judge0SubmissionResponse.class);
+        } catch (Exception e) {
+            log.error("Failed to parse submitAsync response", e);
+            throw new IllegalStateException("Failed to parse Judge0 submitAsync response", e);
+        }
         if (response == null || response.getToken() == null) {
             throw new IllegalStateException("Judge0 returned no token");
         }
@@ -152,14 +209,25 @@ public class Judge0Client {
 
     /** Fetches the current state of a single submission by token. */
     public Judge0CallbackPayload getSubmission(String token) {
-        Judge0CallbackPayload result = restClient.get()
-                .uri(properties.getBaseUrl() + "/submissions/" + token + "?base64_encoded=false")
+        log.info("Fetching single submission status from Judge0 for token: {}", token);
+        String rawResponse = restClient.get()
+                .uri(properties.getBaseUrl() + "/submissions/" + token + "?base64_encoded=true")
                 .retrieve()
-                .body(Judge0CallbackPayload.class);
+                .body(String.class);
+
+        log.info("Received getSubmission raw response from Judge0: {}", rawResponse);
+
+        Judge0CallbackPayload result;
+        try {
+            result = objectMapper.readValue(rawResponse, Judge0CallbackPayload.class);
+        } catch (Exception e) {
+            log.error("Failed to parse getSubmission response", e);
+            throw new IllegalStateException("Failed to parse Judge0 getSubmission response", e);
+        }
         if (result == null) {
             throw new IllegalStateException("Judge0 returned null for token " + token);
         }
-        return result;
+        return decodePayload(result);
     }
 
     public String buildCallbackUrl(Long submissionId, int testCaseIndex) {
@@ -177,5 +245,56 @@ public class Judge0Client {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while polling Judge0", e);
         }
+    }
+
+    private String encodeBase64(String value) {
+        if (value == null) {
+            return null;
+        }
+        return Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String decodeBase64(String value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            // Trim whitespace and newlines as Judge0 can return values with trailing newlines
+            return new String(Base64.getDecoder().decode(value.trim()), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            log.warn("Value is not valid base64, returning original string: {}", value);
+            return value;
+        }
+    }
+
+    private Judge0SubmissionRequest encodeRequest(Judge0SubmissionRequest req) {
+        return Judge0SubmissionRequest.builder()
+                .sourceCode(encodeBase64(req.getSourceCode()))
+                .languageId(req.getLanguageId())
+                .stdin(encodeBase64(req.getStdin()))
+                .expectedOutput(encodeBase64(req.getExpectedOutput()))
+                .callbackUrl(req.getCallbackUrl())
+                .cpuTimeLimit(req.getCpuTimeLimit())
+                .memoryLimitKb(req.getMemoryLimitKb())
+                .build();
+    }
+
+    private Judge0CallbackPayload decodePayload(Judge0CallbackPayload payload) {
+        if (payload == null) {
+            return null;
+        }
+        payload.setStdout(decodeBase64(payload.getStdout()));
+        payload.setStderr(decodeBase64(payload.getStderr()));
+        payload.setCompileOutput(decodeBase64(payload.getCompileOutput()));
+        payload.setMessage(decodeBase64(payload.getMessage()));
+        return payload;
+    }
+
+    private List<Judge0CallbackPayload> decodePayloads(List<Judge0CallbackPayload> payloads) {
+        if (payloads == null) {
+            return null;
+        }
+        payloads.forEach(this::decodePayload);
+        return payloads;
     }
 }
