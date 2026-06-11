@@ -36,38 +36,52 @@ public class JudgeDispatchService {
 
             List<TestCase> testCases = loadJudgeTestCases(submission.getProblem().getId());
             if (testCases.isEmpty()) {
+                log.warn("No testcases found for problem {}, marking RUNTIME_ERROR",
+                        submission.getProblem().getId());
                 submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false);
                 return;
             }
 
+            // Build one request per testcase
+            List<Judge0SubmissionRequest> requests = testCases.stream()
+                    .map(tc -> Judge0SubmissionRequest.builder()
+                            .sourceCode(submission.getCode())
+                            .languageId(submission.getLanguageId())
+                            .stdin(tc.getStdin())
+                            .expectedOutput(tc.getExpectedOutput())
+                            .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
+                            .memoryLimitKb(judge0Properties.getMemoryLimitKb())
+                            .build())
+                    .toList();
+
+            // Submit all testcases in one batch call, then poll until all are resolved
+            log.debug("Dispatching batch of {} testcase(s) for submission {}",
+                    requests.size(), submissionId);
+            List<Judge0CallbackPayload> results = judge0Client.submitBatchAndWait(requests);
+
+            // Store the token of the first result for traceability
+            if (!results.isEmpty() && results.get(0).getToken() != null) {
+                submission.setJudge0Token(results.get(0).getToken());
+                submissionRepository.save(submission);
+            }
+
+            // Walk results in testcase order — first non-AC determines the final verdict.
+            // Time and memory are taken from the worst-case (last) testcase that ran.
             Verdict finalVerdict = Verdict.ACCEPTED;
             Integer timeMs = null;
             Integer memoryKb = null;
 
-            for (TestCase testCase : testCases) {
-                Judge0SubmissionRequest request = Judge0SubmissionRequest.builder()
-                        .sourceCode(submission.getCode())
-                        .languageId(submission.getLanguageId())
-                        .stdin(testCase.getStdin())
-                        .expectedOutput(testCase.getExpectedOutput())
-                        .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
-                        .memoryLimitKb(judge0Properties.getMemoryLimitKb())
-                        .build();
-
-                Judge0CallbackPayload result = judge0Client.submitAndWait(request);
-                if (result.getToken() != null) {
-                    submission.setJudge0Token(result.getToken());
-                    submissionRepository.save(submission);
-                }
-
+            for (Judge0CallbackPayload result : results) {
                 int statusId = result.getStatus() != null ? result.getStatus().getId() : 0;
                 Verdict verdict = Judge0StatusMapper.toVerdict(statusId);
-                timeMs = parseTimeMs(result.getTime());
+
+                // Always update time/memory so we report the last measured testcase
+                timeMs   = parseTimeMs(result.getTime());
                 memoryKb = result.getMemory();
 
                 if (verdict != Verdict.ACCEPTED) {
                     finalVerdict = verdict;
-                    break;
+                    break; // no need to check remaining testcases
                 }
             }
 
@@ -77,6 +91,7 @@ public class JudgeDispatchService {
                     timeMs,
                     memoryKb,
                     finalVerdict == Verdict.ACCEPTED);
+
         } catch (Exception ex) {
             log.error("Failed to judge submission {}", submissionId, ex);
             submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false);

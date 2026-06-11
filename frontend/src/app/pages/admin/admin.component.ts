@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import {
   AdminContest,
   AdminProblem,
@@ -11,6 +12,8 @@ import {
 } from '../../models/admin.models';
 import { AdminApiService } from '../../services/admin-api.service';
 import { SessionService } from '../../services/session.service';
+import { ApiService } from '../../services/api.service';
+import { SseService } from '../../services/sse.service';
 
 type AdminTab = 'users' | 'problems' | 'contests';
 
@@ -20,11 +23,14 @@ type AdminTab = 'users' | 'problems' | 'contests';
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css',
 })
-export class AdminComponent implements OnInit {
+export class AdminComponent implements OnInit, OnDestroy {
   private readonly adminApi = inject(AdminApiService);
   readonly session = inject(SessionService);
+  private readonly api = inject(ApiService);
+  private readonly sse = inject(SseService);
+  private subs = new Subscription();
 
-  tab = signal<AdminTab>('users');
+  tab = signal<AdminTab>('contests');
   readonly error = signal('');
   readonly message = signal('');
 
@@ -36,17 +42,45 @@ export class AdminComponent implements OnInit {
   contests = signal<AdminContest[]>([]);
   testCases = signal<AdminTestCase[]>([]);
   selectedProblemId: number | null = null;
+  isCreatingProblem = signal(false);
+
+  readonly selectedContest = signal<AdminContest | null>(null);
+  readonly leaderboard = signal<any[]>([]);
+  readonly showModal = signal(false);
+  readonly loadingLeaderboard = signal(false);
+  isCreatingContest = signal(true);
+
+  userSearchQuery = '';
+  userCurrentPage = signal(0);
+  userTotalPages = signal(0);
+  userTotalElements = signal(0);
+
+  problemFilterQuery = '';
 
   userForm = { name: '', rollNo: '', branch: '', role: 'STUDENT' as UserRole };
   problemForm = { title: '', description: '', constraints: '', difficulty: 'EASY' as Difficulty };
   testCaseForm = { stdin: '', expectedOutput: '', isSample: false };
   contestForm = {
     title: '',
-    startTime: '',
+    startTime: (() => {
+      const date = new Date();
+      date.setMinutes(date.getMinutes() + 5);
+      const tzoffset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() - tzoffset).toISOString().slice(0, 16);
+    })(),
     durationMins: 120,
-    selectedProblemIds: [] as number[],
-    points: 100,
+    problems: [] as { problemId: number; title: string; difficulty: string; points: number }[],
   };
+
+  getFilteredProblems(): AdminProblem[] {
+    const query = this.problemFilterQuery.toLowerCase().trim();
+    if (!query) {
+      return [];
+    }
+    return this.problems().filter((p) => {
+      return p.title.toLowerCase().includes(query) || (p.difficulty ?? '').toLowerCase().includes(query);
+    });
+  }
 
   private contestTimers: Map<number, any> = new Map();
 
@@ -57,21 +91,32 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  ngOnDestroy(): void {
+    this.sse.disconnect();
+    this.subs.unsubscribe();
+  }
+
   login(): void {
     this.error.set('');
     if (!this.rollNoInput.trim()) {
       this.error.set('Admin roll number is required.');
       return;
     }
-    this.session.connect(this.rollNoInput.trim(), 0);
+    const rollNo = this.rollNoInput.trim();
+    this.session.connect(rollNo, 0);
     this.loggedIn.set(true);
     this.refreshAll();
+    this.sse.connect(rollNo);
+    this.subscribeToSse();
   }
 
   logout(): void {
     this.session.disconnect();
     this.loggedIn.set(false);
     this.rollNoInput = '';
+    this.sse.disconnect();
+    this.subs.unsubscribe();
+    this.subs = new Subscription();
     // Clear all timers
     this.contestTimers.forEach((timer) => clearInterval(timer));
     this.contestTimers.clear();
@@ -95,10 +140,11 @@ export class AdminComponent implements OnInit {
 
   createUser(): void {
     this.adminApi.createUser(this.userForm).subscribe({
-      next: () => {
-        this.message.set('User created.');
+      next: (createdUser) => {
+        this.message.set(`User ${createdUser.name} created successfully.`);
+        this.userSearchQuery = createdUser.rollNo;
         this.userForm = { name: '', rollNo: '', branch: '', role: 'STUDENT' };
-        this.loadUsers();
+        this.searchUsers(0);
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Failed to create user.'),
     });
@@ -106,10 +152,17 @@ export class AdminComponent implements OnInit {
 
   createProblem(): void {
     this.adminApi.createProblem(this.problemForm).subscribe({
-      next: () => {
-        this.message.set('Problem created.');
+      next: (createdProblem) => {
+        this.message.set('Problem created successfully. You can now add test cases.');
         this.problemForm = { title: '', description: '', constraints: '', difficulty: 'EASY' };
-        this.loadProblems();
+        this.isCreatingProblem.set(false);
+        this.adminApi.listProblems().subscribe({
+          next: (rows) => {
+            this.problems.set(rows);
+            this.selectProblem(createdProblem.id);
+          },
+          error: (err) => this.error.set(err?.error?.error ?? 'Failed to load problems.'),
+        });
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Failed to create problem.'),
     });
@@ -117,7 +170,15 @@ export class AdminComponent implements OnInit {
 
   selectProblem(problemId: number): void {
     this.selectedProblemId = problemId;
+    this.isCreatingProblem.set(false);
     this.loadTestCases(problemId);
+  }
+
+  startCreatingProblem(): void {
+    this.selectedProblemId = null;
+    this.isCreatingProblem.set(true);
+    this.message.set('');
+    this.error.set('');
   }
 
   createTestCase(): void {
@@ -147,25 +208,50 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  toggleContestProblem(problemId: number, checked: boolean): void {
-    const ids = this.contestForm.selectedProblemIds;
-    if (checked) {
-      if (!ids.includes(problemId)) {
-        this.contestForm.selectedProblemIds = [...ids, problemId];
-      }
-    } else {
-      this.contestForm.selectedProblemIds = ids.filter((id) => id !== problemId);
+  addProblemToContest(problem: AdminProblem): void {
+    if (this.isProblemSelected(problem.id)) {
+      return;
     }
+    this.contestForm.problems.push({
+      problemId: problem.id,
+      title: problem.title,
+      difficulty: problem.difficulty || 'EASY',
+      points: 100,
+    });
+  }
+
+  removeProblemFromContest(problemId: number): void {
+    this.contestForm.problems = this.contestForm.problems.filter(
+      (p) => p.problemId !== problemId
+    );
+  }
+
+  moveProblemUp(index: number): void {
+    if (index === 0) return;
+    const list = this.contestForm.problems;
+    const temp = list[index];
+    list[index] = list[index - 1];
+    list[index - 1] = temp;
+    this.contestForm.problems = [...list];
+  }
+
+  moveProblemDown(index: number): void {
+    const list = this.contestForm.problems;
+    if (index === list.length - 1) return;
+    const temp = list[index];
+    list[index] = list[index + 1];
+    list[index + 1] = temp;
+    this.contestForm.problems = [...list];
   }
 
   isProblemSelected(problemId: number): boolean {
-    return this.contestForm.selectedProblemIds.includes(problemId);
+    return this.contestForm.problems.some((p) => p.problemId === problemId);
   }
 
   createContest(): void {
-    const problems = this.contestForm.selectedProblemIds.map((problemId, index) => ({
-      problemId,
-      points: this.contestForm.points,
+    const problems = this.contestForm.problems.map((p, index) => ({
+      problemId: p.problemId,
+      points: p.points || 100,
       displayOrder: index + 1,
     }));
 
@@ -177,16 +263,30 @@ export class AdminComponent implements OnInit {
         problems,
       })
       .subscribe({
-        next: () => {
-          this.message.set('Contest created.');
+        next: (createdContest) => {
+          this.message.set('Contest created successfully.');
           this.contestForm = {
             title: '',
-            startTime: '',
+            startTime: (() => {
+              const date = new Date();
+              date.setMinutes(date.getMinutes() + 5);
+              const tzoffset = date.getTimezoneOffset() * 60000;
+              return new Date(date.getTime() - tzoffset).toISOString().slice(0, 16);
+            })(),
             durationMins: 120,
-            selectedProblemIds: [],
-            points: 100,
+            problems: [],
           };
-          this.loadContests();
+          this.isCreatingContest.set(false);
+          this.adminApi.listContests().subscribe({
+            next: (rows) => {
+              this.contests.set(rows);
+              const match = rows.find(x => x.id === createdContest.id);
+              if (match) {
+                this.selectContest(match);
+              }
+            },
+            error: (err) => this.error.set(err?.error?.error ?? 'Failed to load contests.'),
+          });
         },
         error: (err) => this.error.set(err?.error?.error ?? 'Failed to create contest.'),
       });
@@ -194,9 +294,14 @@ export class AdminComponent implements OnInit {
 
   startContest(id: number): void {
     this.adminApi.startContest(id).subscribe({
-      next: () => {
+      next: (updated) => {
         this.message.set('Contest started.');
         this.loadContests();
+        // Update selection with new status so view updates live
+        const current = this.selectedContest();
+        if (current && current.id === id) {
+          this.selectedContest.set({ ...current, status: updated.status });
+        }
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Failed to start contest.'),
     });
@@ -204,24 +309,96 @@ export class AdminComponent implements OnInit {
 
   endContest(id: number): void {
     this.adminApi.endContest(id).subscribe({
-      next: () => {
+      next: (updated) => {
         this.message.set('Contest ended.');
         this.loadContests();
+        // Update selection with new status so view updates live
+        const current = this.selectedContest();
+        if (current && current.id === id) {
+          this.selectedContest.set({ ...current, status: updated.status });
+        }
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Failed to end contest.'),
     });
   }
 
+  selectContest(contest: AdminContest): void {
+    this.selectedContest.set(contest);
+    this.isCreatingContest.set(false);
+    this.loadingLeaderboard.set(true);
+    this.leaderboard.set([]);
+    this.api.getLeaderboard(contest.id).subscribe({
+      next: (entries) => {
+        this.leaderboard.set(entries);
+        this.loadingLeaderboard.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load leaderboard:', err);
+        this.loadingLeaderboard.set(false);
+      },
+    });
+  }
+
+  startCreatingContest(): void {
+    this.selectedContest.set(null);
+    this.isCreatingContest.set(true);
+    this.message.set('');
+    this.error.set('');
+    this.problemFilterQuery = '';
+    this.contestForm.problems = [];
+  }
+
   private refreshAll(): void {
-    this.loadUsers();
     this.loadProblems();
     this.loadContests();
   }
 
-  private loadUsers(): void {
-    this.adminApi.listUsers().subscribe({
-      next: (rows) => this.users.set(rows),
-      error: (err) => this.error.set(err?.error?.error ?? 'Failed to load users.'),
+  private subscribeToSse(): void {
+    this.subs.unsubscribe();
+    this.subs = new Subscription();
+
+    this.subs.add(
+      this.sse.leaderboard$.subscribe(() => {
+        const currentContest = this.selectedContest();
+        if (currentContest) {
+          this.refreshLeaderboard(currentContest.id);
+        }
+      })
+    );
+
+    this.subs.add(
+      this.sse.contestEvent$.subscribe((event) => {
+        this.loadContests();
+        const current = this.selectedContest();
+        if (current && current.id === event.contestId) {
+          this.selectedContest.set({ ...current, status: event.status });
+        }
+      })
+    );
+  }
+
+  private refreshLeaderboard(contestId: number): void {
+    this.api.getLeaderboard(contestId).subscribe({
+      next: (entries) => {
+        const current = this.selectedContest();
+        if (current && current.id === contestId) {
+          this.leaderboard.set(entries);
+        }
+      },
+      error: (err) => console.error('Failed to auto-update leaderboard:', err),
+    });
+  }
+
+  searchUsers(page: number = 0): void {
+    this.userCurrentPage.set(page);
+    this.adminApi.listUsers(this.userSearchQuery, page, 10).subscribe({
+      next: (res) => {
+        this.users.set(res.content);
+        this.userTotalPages.set(res.totalPages);
+        this.userTotalElements.set(res.totalElements);
+        this.error.set('');
+      },
+      error: (err) => this.error.set(err?.error?.error ?? 'Failed to search users.'),
     });
   }
 
@@ -244,5 +421,50 @@ export class AdminComponent implements OnInit {
       next: (rows) => this.testCases.set(rows),
       error: (err) => this.error.set(err?.error?.error ?? 'Failed to load test cases.'),
     });
+  }
+
+  getSelectedProblem(): AdminProblem | undefined {
+    if (!this.selectedProblemId) return undefined;
+    return this.problems().find((p) => p.id === this.selectedProblemId);
+  }
+
+  viewLeaderboard(contest: AdminContest): void {
+    this.selectedContest.set(contest);
+    this.showModal.set(true);
+    this.loadingLeaderboard.set(true);
+    this.leaderboard.set([]);
+
+    this.api.getLeaderboard(contest.id).subscribe({
+      next: (entries) => {
+        this.leaderboard.set(entries);
+        this.loadingLeaderboard.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load leaderboard:', err);
+        this.loadingLeaderboard.set(false);
+      },
+    });
+  }
+
+  closeModal(): void {
+    this.showModal.set(false);
+    this.selectedContest.set(null);
+    this.leaderboard.set([]);
+  }
+
+  formatDateTime(iso: string): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  }
+
+  formatDuration(mins: number): string {
+    if (mins < 60) return `${mins} mins`;
+    const hrs = Math.floor(mins / 60);
+    const remaining = mins % 60;
+    return remaining > 0 ? `${hrs}h ${remaining}m` : `${hrs} hrs`;
   }
 }

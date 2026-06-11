@@ -1,8 +1,8 @@
 <div class="page">
   <header class="header">
     <div>
-      <p class="eyebrow">Administration</p>
-      <h1>Contest setup</h1>
+      <p class="eyebrow">Instructor Portal</p>
+      <h1>Dashboard & Setup</h1>
     </div>
     @if (loggedIn()) {
       <button type="button" class="btn btn-ghost" (click)="logout()">Logout</button>
@@ -10,20 +10,33 @@
   </header>
 
   @if (!loggedIn()) {
-    <section class="card login-card">
-      <h2>Admin login</h2>
-      <p class="hint">Use an admin roll number (default: <code>ADMIN001</code>).</p>
+    <section class="card login-card animate-fade-in">
+      <h2>Instructor Login</h2>
+      <p class="hint">Access the portal using an instructor roll number (default: <code>ADMIN001</code>).</p>
       <label>
         Roll number
-        <input type="text" [(ngModel)]="rollNoInput" placeholder="ADMIN001" />
+        <input type="text" [(ngModel)]="rollNoInput" placeholder="ADMIN001" (keydown.enter)="login()" />
       </label>
       <button type="button" class="btn btn-primary" (click)="login()">Login</button>
     </section>
   } @else {
-    <nav class="tabs">
-      <button type="button" [class.active]="tab() === 'users'" (click)="setTab('users')">Users</button>
-      <button type="button" [class.active]="tab() === 'problems'" (click)="setTab('problems')">Problems</button>
-      <button type="button" [class.active]="tab() === 'contests'" (click)="setTab('contests')">Contests</button>
+    <nav class="tabs-header">
+      <div class="primary-tabs">
+        <button type="button" class="tab-btn primary-tab" [class.active]="tab() === 'contests'" (click)="setTab('contests')">
+          <svg class="tab-icon" viewBox="0 0 24 24" width="20" height="20">
+            <path fill="currentColor" d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.998 5.998 0 0 0 11 16.9V19H9v2h6v-2h-2v-2.1a5.998 5.998 0 0 0 5.61-5.96C21.08 12.63 23 10.55 23 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/>
+          </svg>
+          Contests Control
+        </button>
+      </div>
+      <div class="secondary-tabs">
+        <button type="button" class="tab-btn secondary-tab" [class.active]="tab() === 'problems'" (click)="setTab('problems')">
+          Problems & Test Cases
+        </button>
+        <button type="button" class="tab-btn secondary-tab" [class.active]="tab() === 'users'" (click)="setTab('users')">
+          User Directory
+        </button>
+      </div>
     </nav>
 
     @if (message()) {
@@ -31,147 +44,553 @@
     }
 
     @if (tab() === 'users') {
-      <section class="card">
-        <h2>Add user</h2>
+      <section class="card animate-fade-in">
+        <h2>Add User</h2>
         <div class="form-grid">
-          <label>Name <input [(ngModel)]="userForm.name" /></label>
-          <label>Roll no <input [(ngModel)]="userForm.rollNo" /></label>
-          <label>Branch <input [(ngModel)]="userForm.branch" /></label>
+          <label>Name <input [(ngModel)]="userForm.name" placeholder="e.g. John Doe" /></label>
+          <label>Roll no <input [(ngModel)]="userForm.rollNo" placeholder="e.g. 21CS1001" /></label>
+          <label>Branch <input [(ngModel)]="userForm.branch" placeholder="e.g. Computer Science" /></label>
           <label>
             Role
-            <select [(ngModel)]="userForm.role">
+            <select [(ngModel)]="userForm.role" class="custom-select">
               <option value="STUDENT">Student</option>
-              <option value="ADMIN">Admin</option>
+              <option value="ADMIN">Instructor</option>
             </select>
           </label>
         </div>
-        <button type="button" class="btn btn-primary" (click)="createUser()">Create user</button>
+        <button type="button" class="btn btn-primary" (click)="createUser()">Create User</button>
 
-        <h3 class="section-title">All users</h3>
-        <table class="data-table">
-          <thead><tr><th>Roll</th><th>Name</th><th>Branch</th><th>Role</th></tr></thead>
-          <tbody>
-            @for (u of users(); track u.id) {
-              <tr>
-                <td>{{ u.rollNo }}</td>
-                <td>{{ u.name }}</td>
-                <td>{{ u.branch || '—' }}</td>
-                <td>{{ u.role }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+        <h3 class="section-title" style="margin-top: 2rem;">Search Users</h3>
+        <p class="hint">Look up registered users by entering their name or roll number.</p>
+        <div class="search-bar-container" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; max-width: 480px;">
+          <input type="text" [(ngModel)]="userSearchQuery" placeholder="Search by name or roll number..." (keydown.enter)="searchUsers(0)" />
+          <button type="button" class="btn btn-primary" (click)="searchUsers(0)">Search</button>
+        </div>
+
+        @if (users().length > 0) {
+          <div class="table-container">
+            <table class="rich-table">
+              <thead>
+                <tr>
+                  <th>Roll No</th>
+                  <th>Name</th>
+                  <th>Branch</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of users(); track u.id) {
+                  <tr>
+                    <td class="font-bold">{{ u.rollNo }}</td>
+                    <td>{{ u.name }}</td>
+                    <td class="text-muted">{{ u.branch || '—' }}</td>
+                    <td><span class="lang-tag">{{ u.role === 'ADMIN' ? 'Instructor' : 'Student' }}</span></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Controls -->
+          <div class="pagination-container" style="display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; justify-content: flex-end;">
+            <span class="text-muted" style="font-size: 0.85rem;">
+              Page {{ userCurrentPage() + 1 }} of {{ userTotalPages() }} ({{ userTotalElements() }} total users)
+            </span>
+            <div class="pagination-buttons" style="display: flex; gap: 0.35rem;">
+              <button type="button" class="btn btn-ghost btn-sm" [disabled]="userCurrentPage() === 0" (click)="searchUsers(userCurrentPage() - 1)">
+                Previous
+              </button>
+              <button type="button" class="btn btn-ghost btn-sm" [disabled]="userCurrentPage() >= userTotalPages() - 1" (click)="searchUsers(userCurrentPage() + 1)">
+                Next
+              </button>
+            </div>
+          </div>
+        } @else if (userSearchQuery && !error() && !message()) {
+          <p class="hint" style="margin-top: 1rem;">No users found matching "{{ userSearchQuery }}".</p>
+        } @else {
+          <p class="hint" style="margin-top: 1.5rem;">Enter a query above and click Search to look up student or instructor records.</p>
+        }
       </section>
     }
 
     @if (tab() === 'problems') {
-      <div class="split">
-        <section class="card">
-          <h2>Add problem</h2>
-          <label>Title <input [(ngModel)]="problemForm.title" /></label>
-          <label>Description <textarea [(ngModel)]="problemForm.description" rows="5"></textarea></label>
-          <label>Constraints <input [(ngModel)]="problemForm.constraints" /></label>
-          <label>
-            Difficulty
-            <select [(ngModel)]="problemForm.difficulty">
-              <option value="EASY">Easy</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HARD">Hard</option>
-            </select>
-          </label>
-          <button type="button" class="btn btn-primary" (click)="createProblem()">Create problem</button>
-
-          <h3 class="section-title">Problems</h3>
+      <div class="admin-split-layout">
+        <!-- Sidebar: Problems List -->
+        <aside class="admin-sidebar card animate-fade-in">
+          <button type="button" class="btn btn-primary btn-create-new" (click)="startCreatingProblem()">
+            <svg class="icon-plus" viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            Create Problem
+          </button>
+          
+          <h3 class="sidebar-title font-semibold">Problems List</h3>
           <ul class="pick-list">
             @for (p of problems(); track p.id) {
               <li>
-                <button type="button" [class.selected]="selectedProblemId === p.id" (click)="selectProblem(p.id)">
-                  <strong>{{ p.title }}</strong>
-                  <span>{{ p.testCaseCount }} test cases</span>
+                <button type="button" [class.selected]="selectedProblemId === p.id && !isCreatingProblem()" (click)="selectProblem(p.id)">
+                  <span class="pick-title">{{ p.title }}</span>
+                  <div class="pick-meta">
+                    <span class="difficulty-tag" [class]="(p.difficulty ?? 'EASY').toLowerCase()">{{ p.difficulty ?? 'EASY' }}</span>
+                    <span>• {{ p.testCaseCount }} test case(s)</span>
+                  </div>
                 </button>
               </li>
             }
+            @if (problems().length === 0) {
+              <li class="empty-list-hint">No problems created yet.</li>
+            }
           </ul>
-        </section>
+        </aside>
 
-        <section class="card">
-          <h2>Test cases</h2>
-          @if (!selectedProblemId) {
-            <p class="hint">Select a problem to manage test cases.</p>
-          } @else {
-            <label>Stdin <textarea [(ngModel)]="testCaseForm.stdin" rows="3"></textarea></label>
-            <label>Expected output <textarea [(ngModel)]="testCaseForm.expectedOutput" rows="3"></textarea></label>
-            <label class="checkbox">
-              <input type="checkbox" [(ngModel)]="testCaseForm.isSample" /> Sample (visible to students)
-            </label>
-            <button type="button" class="btn btn-primary" (click)="createTestCase()">Add test case</button>
-
-            <ul class="tc-list">
-              @for (tc of testCases(); track tc.id) {
-                <li>
-                  <div class="tc-head">
-                    <span>#{{ tc.id }} {{ tc.isSample ? '(sample)' : '(hidden)' }}</span>
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="deleteTestCase(tc.id)">Delete</button>
-                  </div>
-                  <pre>{{ tc.stdin || '(empty)' }} → {{ tc.expectedOutput }}</pre>
-                </li>
-              }
-            </ul>
+        <!-- Main Content Panel -->
+        <main class="admin-main-content">
+          <!-- State 1: Creating a Problem -->
+          @if (isCreatingProblem()) {
+            <section class="card animate-fade-in">
+              <h2>Create New Problem</h2>
+              <p class="hint">Define problem statements and limits. Test cases can be added directly after creation.</p>
+              
+              <div class="form-container">
+                <div class="form-info-group">
+                  <label>
+                    Problem Title
+                    <input [(ngModel)]="problemForm.title" placeholder="e.g. Max Subarray Sum" />
+                  </label>
+                  <label>
+                    Description
+                    <textarea [(ngModel)]="problemForm.description" rows="6" placeholder="Write the problem statement, including Input/Output details..."></textarea>
+                  </label>
+                  <label>
+                    Constraints
+                    <textarea [(ngModel)]="problemForm.constraints" rows="3" placeholder="e.g. 1 <= N <= 10^5, -10^9 <= A[i] <= 10^9"></textarea>
+                  </label>
+                  <label>
+                    Difficulty
+                    <select [(ngModel)]="problemForm.difficulty" class="custom-select">
+                      <option value="EASY">Easy</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HARD">Hard</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-primary" (click)="createProblem()">Create Problem</button>
+                  <button type="button" class="btn btn-ghost" (click)="isCreatingProblem.set(false)">Cancel</button>
+                </div>
+              </div>
+            </section>
           }
-        </section>
+          
+          <!-- State 2: Selected Problem / Managing Test Cases -->
+          @else if (selectedProblemId) {
+            <div class="testcases-layout animate-fade-in">
+              <section class="card problem-summary-card">
+                @if (getSelectedProblem(); as prob) {
+                  <div class="problem-summary-header">
+                    <div>
+                      <span class="difficulty-badge" [class]="(prob.difficulty ?? 'EASY').toLowerCase()">{{ prob.difficulty ?? 'EASY' }}</span>
+                      <h2>Selected: {{ prob.title }}</h2>
+                    </div>
+                    <span class="tc-count-badge font-bold">{{ prob.testCaseCount }} test case(s)</span>
+                  </div>
+                }
+              </section>
+
+              <!-- Split: Add test case + list test cases -->
+              <div class="tc-grid">
+                <!-- Add Test Case Form -->
+                <section class="card">
+                  <h2>Add Test Case</h2>
+                  <p class="hint">Provide test inputs and expected outputs. Marked sample testcases are visible to students in the description.</p>
+                  
+                  <label>Stdin <textarea [(ngModel)]="testCaseForm.stdin" rows="4" placeholder="Standard input (leave empty for no input)..."></textarea></label>
+                  <label>Expected Output <textarea [(ngModel)]="testCaseForm.expectedOutput" rows="4" placeholder="Expected output..."></textarea></label>
+                  
+                  <label class="checkbox">
+                    <input type="checkbox" [(ngModel)]="testCaseForm.isSample" /> Sample Test Case (Visible to students)
+                  </label>
+                  
+                  <button type="button" class="btn btn-primary" (click)="createTestCase()">Add Test Case</button>
+                </section>
+
+                <!-- Existing Test Cases list -->
+                <section class="card">
+                  <h2>Existing Test Cases</h2>
+                  @if (testCases().length === 0) {
+                    <div class="empty-placeholder" style="min-height: 200px; padding: 2rem 0;">
+                      <p class="hint">No test cases have been added for this problem yet.</p>
+                    </div>
+                  } @else {
+                    <ul class="tc-list">
+                      @for (tc of testCases(); track tc.id) {
+                        <li>
+                          <div class="tc-head">
+                            <span class="tc-tag" [class.sample]="tc.isSample">
+                              #{{ tc.id }} {{ tc.isSample ? 'Sample' : 'Hidden' }}
+                            </span>
+                            <button type="button" class="btn btn-ghost btn-sm btn-delete" (click)="deleteTestCase(tc.id)">Delete</button>
+                          </div>
+                          <div class="tc-body-preview">
+                            <div class="tc-val-box">
+                              <span class="val-label">Input</span>
+                              <pre>{{ tc.stdin || '(empty)' }}</pre>
+                            </div>
+                            <div class="tc-val-box">
+                              <span class="val-label">Expected Output</span>
+                              <pre>{{ tc.expectedOutput }}</pre>
+                            </div>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </section>
+              </div>
+            </div>
+          }
+          
+          <!-- State 3: Empty Placeholder -->
+          @else {
+            <section class="card empty-placeholder animate-fade-in">
+              <svg class="placeholder-icon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+              </svg>
+              <h2>Manage Problems & Test Cases</h2>
+              <p class="hint">Select a problem from the left sidebar to add test cases, or click the button below to configure a new one.</p>
+              <button type="button" class="btn btn-primary" style="margin-top: 1.5rem;" (click)="startCreatingProblem()">
+                <svg class="icon-plus" viewBox="0 0 24 24" width="20" height="20" style="margin-right: 0.5rem; display: inline-block; vertical-align: middle;">
+                  <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                <span style="vertical-align: middle;">Create New Problem</span>
+              </button>
+            </section>
+          }
+        </main>
       </div>
     }
 
     @if (tab() === 'contests') {
-      <section class="card">
-        <h2>Create contest</h2>
-        <div class="form-grid">
-          <label>Title <input [(ngModel)]="contestForm.title" /></label>
-          <label>Start time <input type="datetime-local" [(ngModel)]="contestForm.startTime" /></label>
-          <label>Duration (mins) <input type="number" [(ngModel)]="contestForm.durationMins" /></label>
-          <label>Points per problem <input type="number" [(ngModel)]="contestForm.points" /></label>
-        </div>
-
-        <h3 class="section-title">Select problems</h3>
-        <div class="problem-checks">
-          @for (p of problems(); track p.id) {
-            <label class="checkbox">
-              <input
-                type="checkbox"
-                [checked]="isProblemSelected(p.id)"
-                (change)="toggleContestProblem(p.id, $any($event.target).checked)"
-              />
-              {{ p.title }}
-            </label>
-          }
-        </div>
-        <button type="button" class="btn btn-primary" (click)="createContest()">Create contest</button>
-
-        <h3 class="section-title">All contests</h3>
-        <table class="data-table">
-          <thead><tr><th>Title</th><th>Status</th><th>Problems</th><th>Actions</th></tr></thead>
-          <tbody>
+      <div class="admin-split-layout">
+        <!-- Sidebar: Contests List -->
+        <aside class="admin-sidebar card animate-fade-in">
+          <button type="button" class="btn btn-primary btn-create-new" (click)="startCreatingContest()">
+            <svg class="icon-plus" viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            Create Contest
+          </button>
+          
+          <h3 class="sidebar-title font-semibold">Contests List</h3>
+          <ul class="pick-list">
             @for (c of contests(); track c.id) {
-              <tr>
-                <td>{{ c.title }}</td>
-                <td><span class="status" [class]="'status-' + c.status.toLowerCase()">{{ c.status }}</span></td>
-                <td>{{ c.problems.length }}</td>
-                <td class="actions">
-                  @if (c.status !== 'ONGOING') {
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="startContest(c.id)">Start</button>
-                  }
-                  @if (canEndContest(c)) {
-                    <button type="button" class="btn btn-ghost btn-sm" (click)="endContest(c.id)">End</button>
-                  }
-                  @if (c.status === 'ONGOING' && isContestTimeExpired(c)) {
-                    <span style="color: #999; font-size: 0.9em">Expired</span>
-                  }
-                </td>
-              </tr>
+              <li>
+                <button type="button" [class.selected]="selectedContest()?.id === c.id && !isCreatingContest()" (click)="selectContest(c)">
+                  <span class="pick-title">{{ c.title }}</span>
+                  <div class="pick-meta">
+                    <span class="status-badge" [class]="c.status.toLowerCase()">{{ c.status }}</span>
+                    <span>• {{ formatDateTime(c.startTime) }}</span>
+                  </div>
+                </button>
+              </li>
             }
-          </tbody>
-        </table>
-      </section>
+            @if (contests().length === 0) {
+              <li class="empty-list-hint">No contests scheduled yet.</li>
+            }
+          </ul>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="admin-main-content">
+          <!-- State 1: Creating a Contest -->
+          @if (isCreatingContest()) {
+            <section class="card animate-fade-in">
+              <h2>Create New Contest</h2>
+              <p class="hint">Configure scheduled time, duration, and assign problems.</p>
+              
+              <div class="form-container">
+                <div class="form-info-group">
+                  <label>
+                    Contest Title
+                    <input [(ngModel)]="contestForm.title" placeholder="e.g. Lab Exam 4" />
+                  </label>
+                  <div class="form-grid">
+                    <label>
+                      Start time
+                      <input type="datetime-local" [(ngModel)]="contestForm.startTime" />
+                    </label>
+                    <label>
+                      Duration (mins)
+                      <input type="number" [(ngModel)]="contestForm.durationMins" placeholder="120" />
+                    </label>
+                  </div>
+                </div>
+                
+                <label class="section-title">Select & Order Problems</label>
+                
+                <div class="problem-assignment-grid">
+                  <!-- Left Column: Available Problems -->
+                  <div class="assignment-column available-problems-col">
+                    <h3 class="col-title">Available Problems</h3>
+                    
+                    <div class="problem-filter-bar">
+                      <input
+                        type="text"
+                        [(ngModel)]="problemFilterQuery"
+                        placeholder="Search by title or difficulty..."
+                        class="problem-filter-input"
+                      />
+                    </div>
+
+                    <div class="available-problems-list">
+                      @for (p of getFilteredProblems(); track p.id) {
+                        <div class="problem-item-card" [class.added-to-contest]="isProblemSelected(p.id)">
+                          <div class="problem-item-info">
+                            <span class="problem-item-title">{{ p.title }}</span>
+                            <span class="diff-span" [class]="(p.difficulty ?? 'EASY').toLowerCase()">{{ p.difficulty ?? 'EASY' }}</span>
+                          </div>
+                          @if (isProblemSelected(p.id)) {
+                            <button type="button" class="btn btn-sm btn-ghost btn-added" disabled>
+                              ✓ Added
+                            </button>
+                          } @else {
+                            <button type="button" class="btn btn-sm btn-ghost btn-add-problem" (click)="addProblemToContest(p)">
+                              + Add
+                            </button>
+                          }
+                        </div>
+                      }
+                      @if (!problemFilterQuery.trim() && problems().length > 0) {
+                        <p class="hint empty-col-hint">Type in the search bar above to find available problems.</p>
+                      }
+                      @if (problemFilterQuery.trim() && getFilteredProblems().length === 0 && problems().length > 0) {
+                        <p class="hint empty-col-hint">No problems match search query.</p>
+                      }
+                      @if (problems().length === 0) {
+                        <p class="hint empty-col-hint">No problems available.</p>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Right Column: Selected Problems & Points/Ordering -->
+                  <div class="assignment-column contest-problems-col">
+                    <div class="col-header-row">
+                      <h3 class="col-title">Selected Problems</h3>
+                      <span class="contest-problems-count-badge">{{ contestForm.problems.length }} active</span>
+                    </div>
+
+                    <div class="contest-problems-list">
+                      @for (cp of contestForm.problems; track cp.problemId; let idx = $index) {
+                        <div class="contest-problem-card">
+                          <div class="card-left-section">
+                            <span class="problem-order-index">#{{ idx + 1 }}</span>
+                            <div class="contest-problem-info">
+                              <span class="contest-problem-title">{{ cp.title }}</span>
+                              <span class="diff-span" [class]="cp.difficulty.toLowerCase()">{{ cp.difficulty }}</span>
+                            </div>
+                          </div>
+
+                          <div class="card-right-section">
+                            <div class="points-field">
+                              <span class="points-label">Points</span>
+                              <input
+                                type="number"
+                                [(ngModel)]="cp.points"
+                                class="points-input"
+                                min="1"
+                              />
+                            </div>
+                            
+                            <div class="reorder-actions">
+                              <button
+                                type="button"
+                                class="btn-icon-sm"
+                                [disabled]="idx === 0"
+                                (click)="moveProblemUp(idx)"
+                                title="Move Up"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                class="btn-icon-sm"
+                                [disabled]="idx === contestForm.problems.length - 1"
+                                (click)="moveProblemDown(idx)"
+                                title="Move Down"
+                              >
+                                ▼
+                              </button>
+                            </div>
+
+                            <button
+                              type="button"
+                              class="btn-icon-delete"
+                              (click)="removeProblemFromContest(cp.problemId)"
+                              title="Remove problem"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      }
+                      @if (contestForm.problems.length === 0) {
+                        <div class="empty-col-placeholder">
+                          <p class="hint">No problems added yet.</p>
+                          <p class="hint-sub">Click "+ Add" on available problems to assign them to this contest.</p>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-actions">
+                  <button type="button" class="btn btn-primary" (click)="createContest()">Create Contest</button>
+                  <button type="button" class="btn btn-ghost" (click)="isCreatingContest.set(false)">Cancel</button>
+                </div>
+              </div>
+            </section>
+          }
+          
+          <!-- State 2: Selected Contest / Dashboard & Live Standings -->
+          @else if (selectedContest()) {
+            @if (selectedContest(); as contest) {
+              <div class="testcases-layout animate-fade-in">
+                <!-- Contest Details Card -->
+                <section class="card problem-summary-card">
+                  <div class="problem-summary-header">
+                    <div>
+                      <span class="status-badge" [class]="contest.status.toLowerCase()">{{ contest.status }}</span>
+                      <h2>{{ contest.title }}</h2>
+                      <p style="margin: 0.35rem 0 0; font-size: 0.85rem; color: #64748b;">
+                        <strong>Start Time:</strong> {{ formatDateTime(contest.startTime) }} &nbsp;•&nbsp; 
+                        <strong>Duration:</strong> {{ formatDuration(contest.durationMins) }}
+                      </p>
+                    </div>
+                    
+                    <div class="actions">
+                      @if (contest.status !== 'ONGOING' && contest.status !== 'ENDED') {
+                        <button type="button" class="btn btn-primary btn-sm" (click)="startContest(contest.id)">Start Contest</button>
+                      }
+                      @if (canEndContest(contest)) {
+                        <button type="button" class="btn btn-ghost btn-sm btn-delete" style="color: #b91c1c; border-color: #fee2e2; background: #fef2f2;" (click)="endContest(contest.id)">End Contest</button>
+                      }
+                      @if (contest.status === 'ONGOING' && isContestTimeExpired(contest)) {
+                        <span class="expired-label" style="font-weight: 700; color: #ef4444;">Expired</span>
+                      }
+                      @if (contest.status === 'ENDED') {
+                        <span class="text-muted font-semibold">Ended</span>
+                      }
+                    </div>
+                  </div>
+                </section>
+
+                <!-- Split: Problems Assigned + Live Leaderboard -->
+                <div class="tc-grid">
+                  <!-- Problems List -->
+                  <section class="card">
+                    <h2>Assigned Problems</h2>
+                    <p class="hint">List of problems selected for this contest.</p>
+                    
+                    <div class="table-container">
+                      <table class="rich-table">
+                        <thead>
+                          <tr>
+                            <th>Order</th>
+                            <th>Problem Title</th>
+                            <th>Points</th>
+                            <th>Difficulty</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (cp of contest.problems; track cp.problemId) {
+                            <tr>
+                              <td class="font-bold">{{ cp.displayOrder }}</td>
+                              <td>{{ cp.title }}</td>
+                              <td class="score-val font-semibold">{{ cp.points }} pts</td>
+                              <td>
+                                <span class="difficulty-badge" [class]="(cp.difficulty ?? 'EASY').toLowerCase()">
+                                  {{ cp.difficulty ?? 'EASY' }}
+                                </span>
+                              </td>
+                            </tr>
+                          }
+                          @if (contest.problems.length === 0) {
+                            <tr>
+                              <td colspan="4" class="text-center text-muted">No problems assigned.</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <!-- Leaderboard inline -->
+                  <section class="card">
+                    <h2>Contest Leaderboard</h2>
+                    <p class="hint">Standings for this contest.</p>
+                    
+                    @if (loadingLeaderboard()) {
+                      <div class="loading-state" style="text-align: center; padding: 2rem;">
+                        <span class="spinner"></span>
+                        <p style="margin-top: 0.5rem; color: #64748b;">Fetching standings...</p>
+                      </div>
+                    } @else if (leaderboard().length === 0) {
+                      <div class="empty-state" style="text-align: center; padding: 2rem; color: #64748b;">
+                        <p>No submissions have been recorded for this contest.</p>
+                      </div>
+                    } @else {
+                      <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                        <table class="rich-table">
+                          <thead>
+                            <tr style="position: sticky; top: 0; z-index: 10; background: #f8fafc;">
+                              <th style="width: 50px; text-align: center;">Rank</th>
+                              <th>Student</th>
+                              <th class="text-right" style="width: 80px;">Score</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (row of leaderboard(); track row.userId) {
+                              <tr>
+                                <td style="text-align: center; vertical-align: middle;">
+                                  <span class="rank-badge" [class]="'rank-' + row.rank">{{ row.rank }}</span>
+                                </td>
+                                <td>
+                                  <span class="student-name" style="font-size: 0.85rem; font-weight: 700;">{{ row.name }}</span>
+                                  <span class="student-roll" style="font-size: 0.75rem; color: #64748b;">{{ row.rollNo }}</span>
+                                </td>
+                                <td class="text-right score-val font-bold" style="color: #2563eb; vertical-align: middle;">
+                                  {{ row.score }}
+                                </td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      </div>
+                    }
+                  </section>
+                </div>
+              </div>
+            }
+          }
+          
+          <!-- State 3: Empty State -->
+          @else {
+            <section class="card empty-placeholder animate-fade-in">
+              <svg class="placeholder-icon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+              </svg>
+              <h2>Manage Contests & Live Standings</h2>
+              <p class="hint">Select a contest from the left sidebar to view details, manage status, and monitor standings, or click the button below to configure a new one.</p>
+              <button type="button" class="btn btn-primary" style="margin-top: 1.5rem;" (click)="startCreatingContest()">
+                <svg class="icon-plus" viewBox="0 0 24 24" width="20" height="20" style="margin-right: 0.5rem; display: inline-block; vertical-align: middle;">
+                  <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                <span style="vertical-align: middle;">Create New Contest</span>
+              </button>
+            </section>
+          }
+        </main>
+      </div>
     }
   }
 

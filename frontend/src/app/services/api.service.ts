@@ -41,6 +41,10 @@ export class ApiService {
     });
   }
 
+  listContests(): Observable<ContestSummary[]> {
+    return this.http.get<ContestSummary[]>('/api/contests');
+  }
+
   getContestProblems(contestId: number): Observable<ContestProblemSummary[]> {
     return this.http.get<ContestProblemSummary[]>(`/api/contests/${contestId}/problems`, {
       headers: this.authHeaders(),

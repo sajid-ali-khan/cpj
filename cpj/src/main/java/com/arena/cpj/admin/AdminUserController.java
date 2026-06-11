@@ -20,7 +20,10 @@ public class AdminUserController {
     }
 
     @GetMapping
-    public List<UserResponse> list() {
-        return adminUserService.list();
+    public org.springframework.data.domain.Page<UserResponse> list(
+            @RequestParam(value = "query", required = false) String query,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size) {
+        return adminUserService.search(query, page, size);
     }
 }

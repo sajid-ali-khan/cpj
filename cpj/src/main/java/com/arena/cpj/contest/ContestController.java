@@ -19,6 +19,11 @@ public class ContestController {
         return contestService.getCurrentContest();
     }
 
+    @GetMapping
+    public List<ContestSummaryResponse> getAll() {
+        return contestService.getAllContests();
+    }
+
     @GetMapping("/{contestId}/problems")
     public List<ContestProblemSummaryResponse> getProblems(@PathVariable Long contestId) {
         return contestService.getContestProblems(contestId);

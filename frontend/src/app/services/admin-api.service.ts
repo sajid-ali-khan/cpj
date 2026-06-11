@@ -24,8 +24,12 @@ export class AdminApiService {
     return this.http.post<AdminUser>('/api/admin/users', body, { headers: this.authHeaders() });
   }
 
-  listUsers(): Observable<AdminUser[]> {
-    return this.http.get<AdminUser[]>('/api/admin/users', { headers: this.authHeaders() });
+  listUsers(query?: string, page: number = 0, size: number = 20): Observable<any> {
+    let url = `/api/admin/users?page=${page}&size=${size}`;
+    if (query && query.trim()) {
+      url += `&query=${encodeURIComponent(query.trim())}`;
+    }
+    return this.http.get<any>(url, { headers: this.authHeaders() });
   }
 
   createProblem(body: {

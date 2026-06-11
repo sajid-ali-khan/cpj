@@ -37,10 +37,18 @@ public class AdminUserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserResponse> list() {
-        return userRepository.findAllByOrderByRollNoAsc().stream()
-                .map(this::toResponse)
-                .toList();
+    public org.springframework.data.domain.Page<UserResponse> search(String query, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+                page, size, org.springframework.data.domain.Sort.by("rollNo").ascending());
+
+        org.springframework.data.domain.Page<User> userPage;
+        if (query == null || query.isBlank()) {
+            userPage = userRepository.findAll(pageable);
+        } else {
+            userPage = userRepository.searchUsers(query.trim(), pageable);
+        }
+
+        return userPage.map(this::toResponse);
     }
 
     private void validate(CreateUserRequest request) {

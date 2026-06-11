@@ -40,39 +40,39 @@ public class SubmissionResultService {
         submission.setMemoryKb(memoryKb);
         submissionRepository.save(submission);
 
-                Long userId = submission.getUser().getId();
-                Long contestId = submission.getContest().getId();
-                Long problemId = submission.getProblem().getId();
+        Long userId = submission.getUser().getId();
+        Long contestId = submission.getContest().getId();
+        Long problemId = submission.getProblem().getId();
 
-                Runnable afterCommit = () -> {
-                        sessionTracker.remove(submissionId);
+        if (isFirstAc) {
+            leaderboardService.recordFirstAcceptedSubmission(
+                    submission.getUser(),
+                    submission.getContest(),
+                    problemId,
+                    LocalDateTime.now());
+        }
 
-                        sseService.sendVerdict(userId, VerdictEventDto.builder()
-                                        .submissionId(submission.getId())
-                                        .problemId(problemId)
-                                        .verdict(verdict)
-                                        .timeMs(timeMs)
-                                        .memoryKb(memoryKb)
-                                        .build());
+        Runnable afterCommit = () -> {
+            sessionTracker.remove(submissionId);
 
-                        if (isFirstAc) {
-                                leaderboardService.recordFirstAcceptedSubmission(
-                                                submission.getUser(),
-                                                submission.getContest(),
-                                                problemId,
-                                                LocalDateTime.now());
-                        }
-                };
+            sseService.sendVerdict(userId, VerdictEventDto.builder()
+                    .submissionId(submission.getId())
+                    .problemId(problemId)
+                    .verdict(verdict)
+                    .timeMs(timeMs)
+                    .memoryKb(memoryKb)
+                    .build());
+        };
 
-                if (TransactionSynchronizationManager.isSynchronizationActive()) {
-                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                                @Override
-                                public void afterCommit() {
-                                        afterCommit.run();
-                                }
-                        });
-                } else {
-                        afterCommit.run();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    afterCommit.run();
                 }
+            });
+        } else {
+            afterCommit.run();
+        }
     }
 }

@@ -15,6 +15,9 @@
           <button type="button" class="nav-link" [class.active]="activeTab() === 'submissions'" (click)="setTab('submissions')">
             <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
             Submissions
+            @if (pendingVerdictCount() > 0) {
+              <span class="verdict-badge-count">{{ pendingVerdictCount() }}</span>
+            }
           </button>
           <button type="button" class="nav-link" [class.active]="activeTab() === 'leaderboard'" (click)="setTab('leaderboard')">
             <svg class="icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
@@ -33,26 +36,90 @@
     }
   </header>
 
-  @if (checkingContest()) {
-    <section class="card login-card animate-fade-in">
-      <h2>Join contest</h2>
-      <p class="hint">Checking for contest…</p>
-    </section>
-  } @else if (!contestExists()) {
-    <section class="card login-card animate-fade-in">
-      <h2>Join contest</h2>
-      <p class="hint">No ongoing contest right now. Check back soon, or contact your instructor.</p>
-    </section>
-  } @else if (!session.isConnected() || !contest()) {
-    <section class="card login-card animate-fade-in">
-      <h2>Join contest</h2>
-      <p class="hint">Enter your roll number to join the contest.</p>
-      <label class="input-label">
-        Roll number
-        <input type="text" [(ngModel)]="rollNoInput" placeholder="e.g. 21CS1001" />
-      </label>
-      <button type="button" class="btn btn-primary" (click)="connect()">Join</button>
-    </section>
+  @if (!session.isConnected() || !contest()) {
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+      @if (checkingContest()) {
+        <section class="card login-card animate-fade-in">
+          <h2>Join contest</h2>
+          <p class="hint">Checking for contest…</p>
+        </section>
+      } @else if (!contestExists()) {
+        <section class="card login-card animate-fade-in">
+          <h2>Join contest</h2>
+          <p class="hint">No ongoing contest right now. Check back soon, or contact your instructor.</p>
+        </section>
+      } @else {
+        <section class="card login-card animate-fade-in">
+          <h2>Join contest</h2>
+          <p class="hint">Enter your roll number to join the contest.</p>
+          <label class="input-label">
+            Roll number
+            <!-- keydown.enter triggers connect; also disables during join to prevent duplicate requests -->
+            <input
+              id="rollno-input"
+              type="text"
+              [(ngModel)]="rollNoInput"
+              placeholder="e.g. 21CS1001"
+              [disabled]="joining()"
+              (keydown.enter)="connect()"
+              autocomplete="off"
+              autofocus
+            />
+          </label>
+          <button type="button" class="btn btn-primary" [disabled]="joining()" (click)="connect()">
+            @if (joining()) {
+              <span class="spinner"></span> Joining…
+            } @else {
+              Join
+            }
+          </button>
+        </section>
+      }
+
+      <!-- Contest Archive & Leaderboards for Students -->
+      @if (!checkingContest()) {
+        <section class="card contest-archive animate-fade-in" style="max-width: 900px; width: 100%; margin: 0 auto;">
+          <h2>Contest Archive</h2>
+          <p class="hint">Browse past and current contests, and view their final ranking leaderboards.</p>
+          
+          <div class="table-container">
+            <table class="rich-table">
+              <thead>
+                <tr>
+                  <th>Contest Title</th>
+                  <th>Status</th>
+                  <th>Scheduled Time</th>
+                  <th>Duration</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of archiveContests(); track c.id) {
+                  <tr>
+                    <td class="font-bold">{{ c.title }}</td>
+                    <td>
+                      <span class="status-badge" [class]="c.status.toLowerCase()">{{ c.status }}</span>
+                    </td>
+                    <td class="text-muted">{{ formatDateTime(c.startTime) }}</td>
+                    <td class="text-muted">{{ formatDuration(c.durationMins) }}</td>
+                    <td class="text-right">
+                      <button type="button" class="btn btn-ghost btn-sm" (click)="viewArchiveLeaderboard(c)">
+                        View Leaderboard
+                      </button>
+                    </td>
+                  </tr>
+                }
+                @if (archiveContests().length === 0) {
+                  <tr>
+                    <td colspan="5" class="text-center text-muted" style="padding: 2rem;">No contests found in the database.</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+    </div>
   } @else {
     @if (activeTab() === 'problem') {
       <div class="leetcode-layout animate-fade-in">
@@ -206,12 +273,15 @@
               </thead>
               <tbody>
                 @for (row of submissions(); track row.id) {
-                  <tr class="submission-row">
+                  <tr class="submission-row" [class.row-pending]="row.verdict === 'PENDING'">
                     <td class="mono font-semibold">#{{ row.id }}</td>
                     <td>{{ getProblemTitle(row.problemId) }}</td>
                     <td><span class="lang-tag">{{ getLanguageLabel(row.languageId) }}</span></td>
                     <td>
                       <span class="verdict-tag" [class]="verdictClass(row.verdict)">
+                        @if (row.verdict === 'PENDING') {
+                          <span class="pending-dot"></span>
+                        }
                         {{ row.verdict }}
                       </span>
                     </td>
@@ -294,7 +364,90 @@
     }
   }
 
+  <!-- Auto-dismissing error banner -->
   @if (error()) {
-    <p class="error-banner">{{ error() }}</p>
+    <div class="error-banner" (click)="dismissError()">
+      <span>{{ error() }}</span>
+      <button type="button" class="error-close" aria-label="Dismiss">✕</button>
+    </div>
   }
+
+  <!-- Student Archive Leaderboard Modal -->
+  @if (showArchiveModal()) {
+    <div class="modal-overlay animate-fade-in" (click)="closeArchiveModal()">
+      <div class="modal-content animate-slide-up" (click)="$event.stopPropagation()">
+        <header class="modal-header">
+          <div>
+            <span class="eyebrow" style="color: #2563eb;">Contest Leaderboard</span>
+            <h2 style="font-size: 1.45rem; font-weight: 800; margin: 0.25rem 0 0.15rem;">{{ selectedArchiveContest()?.title }}</h2>
+            <p class="contest-time-details" style="font-size: 0.85rem; color: #64748b; margin: 0;">
+              <strong>Scheduled:</strong> {{ formatDateTime(selectedArchiveContest()?.startTime || '') }} 
+              <span style="margin: 0 0.5rem;">•</span> 
+              <strong>Duration:</strong> {{ formatDuration(selectedArchiveContest()?.durationMins || 0) }}
+            </p>
+          </div>
+          <button type="button" class="close-btn" (click)="closeArchiveModal()">×</button>
+        </header>
+
+        <main class="modal-body">
+          @if (loadingArchiveLeaderboard()) {
+            <div class="loading-state" style="text-align: center; padding: 3rem;">
+              <span class="spinner"></span>
+              <p style="margin-top: 0.5rem; color: #64748b;">Fetching ranks...</p>
+            </div>
+          } @else if (archiveLeaderboard().length === 0) {
+            <div class="empty-state" style="text-align: center; padding: 3rem; color: #64748b;">
+              <p>No submissions have been recorded or graded for this contest yet.</p>
+            </div>
+          } @else {
+            <div class="table-container" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+              <table class="rich-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="position: sticky; top: 0; z-index: 10; background: #f8fafc;">
+                    <th style="width: 60px; text-align: center; border-bottom: 1px solid #e2e8f0;">Rank</th>
+                    <th style="border-bottom: 1px solid #e2e8f0;">Student</th>
+                    <th class="text-right" style="width: 100px; border-bottom: 1px solid #e2e8f0;">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of archiveLeaderboard(); track row.userId) {
+                    <tr>
+                      <td style="text-align: center; vertical-align: middle;">
+                        <span class="rank-badge" [class]="'rank-' + row.rank">{{ row.rank }}</span>
+                      </td>
+                      <td>
+                        <span class="student-name">{{ row.name }}</span>
+                        <span class="student-roll">{{ row.rollNo }}</span>
+                      </td>
+                      <td class="text-right score-val font-bold" style="color: #2563eb; vertical-align: middle;">
+                        {{ row.score }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </main>
+        
+        <footer class="modal-footer">
+          <button type="button" class="btn btn-ghost" (click)="closeArchiveModal()">Close</button>
+        </footer>
+      </div>
+    </div>
+  }
+
+  <!-- Toast notifications -->
+  <div class="toast-stack" aria-live="polite">
+    @for (toast of toasts(); track toast.id) {
+      <div class="toast animate-slide-up" [class]="toastClass(toast.verdict)">
+        <span class="toast-icon">{{ toastIcon(toast.verdict) }}</span>
+        <div class="toast-body">
+          <div class="toast-verdict">{{ toast.verdict.replace('_', ' ') }}</div>
+          <div class="toast-problem">{{ toast.problemTitle }}</div>
+        </div>
+        <button type="button" class="toast-close" (click)="dismissToast(toast.id)" aria-label="Dismiss">✕</button>
+      </div>
+    }
+  </div>
 </div>

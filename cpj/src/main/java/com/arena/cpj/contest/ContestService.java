@@ -27,6 +27,13 @@ public class ContestService {
     }
 
     @Transactional(readOnly = true)
+    public List<ContestSummaryResponse> getAllContests() {
+        return contestRepository.findAllByOrderByStartTimeDesc().stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<ContestProblemSummaryResponse> getContestProblems(Long contestId) {
         if (!contestRepository.existsById(contestId)) {
             throw new NotFoundException("Contest not found: " + contestId);
