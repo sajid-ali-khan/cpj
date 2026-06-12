@@ -69,4 +69,28 @@ public class AdminUserService {
                 .role(user.getRole())
                 .build();
     }
+
+    @Transactional
+    public UserResponse update(Long id, CreateUserRequest request) {
+        validate(request);
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new com.arena.cpj.common.NotFoundException("User not found with ID: " + id));
+
+        String newRollNo = request.getRollNo().trim();
+        userRepository.findByRollNo(newRollNo).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new BadRequestException("Roll number already exists: " + newRollNo);
+            }
+        });
+
+        user.setName(request.getName().trim());
+        user.setRollNo(newRollNo);
+        user.setBranch(request.getBranch() != null ? request.getBranch().trim() : null);
+        if (request.getRole() != null) {
+            user.setRole(request.getRole());
+        }
+
+        return toResponse(userRepository.save(user));
+    }
 }

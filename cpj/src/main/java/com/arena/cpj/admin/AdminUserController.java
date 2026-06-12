@@ -26,4 +26,9 @@ public class AdminUserController {
             @RequestParam(value = "size", defaultValue = "20") int size) {
         return adminUserService.search(query, page, size);
     }
+
+    @PutMapping("/{id}")
+    public UserResponse update(@PathVariable Long id, @RequestBody CreateUserRequest request) {
+        return adminUserService.update(id, request);
+    }
 }
