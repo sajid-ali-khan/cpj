@@ -38,4 +38,9 @@ public class AdminContestController {
     public ContestResponse end(@PathVariable Long id) {
         return adminContestService.end(id);
     }
+
+    @PutMapping("/{id}")
+    public ContestResponse update(@PathVariable Long id, @RequestBody CreateContestRequest request) {
+        return adminContestService.update(id, request);
+    }
 }

@@ -15,4 +15,6 @@ public class CreateProblemRequest {
     private String constraints;
     private Difficulty difficulty;
     private String mediaLink;
+    private String inputStructure;
+    private String outputStructure;
 }

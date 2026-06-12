@@ -36,4 +36,12 @@ public class ContestController {
         contestService.registerUserForContest(com.arena.cpj.auth.UserContext.get(), contestId);
         return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Registration successful"));
     }
+
+    @PostMapping("/{contestId}/submit")
+    public org.springframework.http.ResponseEntity<?> submit(
+            @PathVariable Long contestId,
+            @RequestBody(required = false) java.util.Map<String, Object> body) {
+        contestService.submitContest(contestId, com.arena.cpj.auth.UserContext.get());
+        return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Contest submitted successfully"));
+    }
 }

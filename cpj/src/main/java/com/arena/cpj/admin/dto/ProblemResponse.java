@@ -14,5 +14,8 @@ public class ProblemResponse {
     private final String constraints;
     private final Difficulty difficulty;
     private final String mediaLink;
+    private final String inputStructure;
+    private final String outputStructure;
     private final int testCaseCount;
+    private final java.util.List<TestCaseResponse> testCases;
 }

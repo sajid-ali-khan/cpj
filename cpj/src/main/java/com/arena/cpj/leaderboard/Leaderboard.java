@@ -35,6 +35,11 @@ public class Leaderboard {
     @Builder.Default
     private Integer score = 0;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private ParticipantStatus status = ParticipantStatus.NOT_STARTED;
+
     /** Timestamp of the most recent accepted submission; null until first AC */
     @Column(name = "last_ac_time")
     private LocalDateTime lastAcTime;

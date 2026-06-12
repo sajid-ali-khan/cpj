@@ -11,5 +11,6 @@ public class CreateTestCaseRequest {
 
     private String stdin;
     private String expectedOutput;
+    @com.fasterxml.jackson.annotation.JsonProperty("isSample")
     private boolean isSample;
 }

@@ -136,12 +136,6 @@ public class JudgeDispatchService {
     }
 
     private List<TestCase> loadJudgeTestCases(Long problemId) {
-        List<TestCase> hidden = testCaseRepository.findByProblemId(problemId).stream()
-                .filter(tc -> !tc.isSample())
-                .toList();
-        if (!hidden.isEmpty()) {
-            return hidden;
-        }
         return testCaseRepository.findByProblemId(problemId);
     }
 

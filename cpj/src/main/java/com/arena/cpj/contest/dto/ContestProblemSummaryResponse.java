@@ -15,4 +15,16 @@ public class ContestProblemSummaryResponse {
     private final Difficulty difficulty;
     private final Integer points;
     private final Integer displayOrder;
+    private final String inputStructure;
+    private final String outputStructure;
+    private final java.util.List<SampleTestCaseDto> testCases;
+
+    @Getter
+    @Builder
+    public static class SampleTestCaseDto {
+        private final String input;
+        private final String output;
+        private final boolean isHidden;
+    }
 }
+

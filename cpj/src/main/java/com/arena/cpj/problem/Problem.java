@@ -32,4 +32,10 @@ public class Problem {
 
     @Column(name = "media_link", length = 500)
     private String mediaLink;
+
+    @Column(name = "input_structure", columnDefinition = "TEXT")
+    private String inputStructure;
+
+    @Column(name = "output_structure", columnDefinition = "TEXT")
+    private String outputStructure;
 }

@@ -17,4 +17,6 @@ public interface ContestProblemRepository extends JpaRepository<ContestProblem, 
      * when resolving points for a newly accepted submission.
      */
     java.util.Optional<ContestProblem> findByIdContestIdAndIdProblemId(Long contestId, Long problemId);
+
+    void deleteByIdContestId(Long contestId);
 }

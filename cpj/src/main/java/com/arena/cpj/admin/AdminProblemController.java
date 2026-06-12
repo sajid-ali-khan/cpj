@@ -28,4 +28,9 @@ public class AdminProblemController {
     public ProblemResponse get(@PathVariable Long id) {
         return adminProblemService.get(id);
     }
+
+    @PutMapping("/{id}")
+    public ProblemResponse update(@PathVariable Long id, @RequestBody CreateProblemRequest request) {
+        return adminProblemService.update(id, request);
+    }
 }

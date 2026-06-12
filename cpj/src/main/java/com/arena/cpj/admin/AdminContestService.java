@@ -160,4 +160,29 @@ public class AdminContestService {
                 .problems(problems)
                 .build();
     }
+
+    @Transactional
+    public ContestResponse update(Long id, CreateContestRequest request) {
+        validate(request);
+        Contest contest = findContest(id);
+
+        if (contest.getStatus() == ContestStatus.ENDED) {
+            throw new BadRequestException("Cannot edit an ended contest");
+        }
+
+        contest.setTitle(request.getTitle().trim());
+        contest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
+        contest.setStartTime(request.getStartTime());
+        contest.setDurationMins(request.getDurationMins());
+        contest = contestRepository.save(contest);
+
+        contestProblemRepository.deleteByIdContestId(id);
+        contestProblemRepository.flush();
+
+        for (ContestProblemRequest problemRequest : request.getProblems()) {
+            addProblemToContest(contest, problemRequest);
+        }
+
+        return toResponse(contest);
+    }
 }

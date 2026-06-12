@@ -8,7 +8,13 @@ import com.arena.cpj.event.dto.ContestEventDto;
 import com.arena.cpj.leaderboard.Leaderboard;
 import com.arena.cpj.leaderboard.LeaderboardRepository;
 import com.arena.cpj.leaderboard.LeaderboardService;
+import com.arena.cpj.problem.TestCase;
+import com.arena.cpj.problem.TestCaseRepository;
 import com.arena.cpj.user.User;
+import com.arena.cpj.user.UserRole;
+import com.arena.cpj.auth.UserContext;
+import com.arena.cpj.auth.ForbiddenException;
+import com.arena.cpj.leaderboard.ParticipantStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +30,7 @@ public class ContestService {
     private final SseService sseService;
     private final LeaderboardRepository leaderboardRepository;
     private final LeaderboardService leaderboardService;
+    private final TestCaseRepository testCaseRepository;
 
     @Transactional(readOnly = true)
     public ContestSummaryResponse getCurrentContest() {
@@ -39,22 +46,52 @@ public class ContestService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ContestProblemSummaryResponse> getContestProblems(Long contestId) {
         if (!contestRepository.existsById(contestId)) {
             throw new NotFoundException("Contest not found: " + contestId);
         }
+
+        User currentUser = UserContext.get();
+        if (currentUser != null && currentUser.getRole() == UserRole.STUDENT) {
+            Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, currentUser.getId())
+                    .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
+            if (entry.getStatus() == ParticipantStatus.FINISHED) {
+                throw new ForbiddenException("You have already submitted this contest");
+            }
+            if (entry.getStatus() == ParticipantStatus.NOT_STARTED) {
+                entry.setStatus(ParticipantStatus.WRITING);
+                leaderboardRepository.save(entry);
+                sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
+            }
+        }
+
         return contestProblemRepository.findByIdContestIdOrderByDisplayOrderAsc(contestId)
                 .stream()
-                .map(cp -> ContestProblemSummaryResponse.builder()
-                        .problemId(cp.getProblem().getId())
-                        .title(cp.getProblem().getTitle())
-                        .description(cp.getProblem().getDescription())
-                        .constraints(cp.getProblem().getConstraints())
-                        .difficulty(cp.getProblem().getDifficulty())
-                        .points(cp.getPoints())
-                        .displayOrder(cp.getDisplayOrder())
-                        .build())
+                .map(cp -> {
+                    List<ContestProblemSummaryResponse.SampleTestCaseDto> sampleTestCases = testCaseRepository
+                            .findByProblemIdAndIsSampleTrue(cp.getProblem().getId())
+                            .stream()
+                            .map(tc -> ContestProblemSummaryResponse.SampleTestCaseDto.builder()
+                                    .input(tc.getStdin())
+                                    .output(tc.getExpectedOutput())
+                                    .isHidden(false)
+                                    .build())
+                            .toList();
+
+                    return ContestProblemSummaryResponse.builder()
+                            .problemId(cp.getProblem().getId())
+                            .title(cp.getProblem().getTitle())
+                            .description(cp.getProblem().getDescription())
+                            .constraints(cp.getProblem().getConstraints())
+                            .difficulty(cp.getProblem().getDifficulty())
+                            .points(cp.getPoints())
+                            .displayOrder(cp.getDisplayOrder())
+                            .inputStructure(cp.getProblem().getInputStructure())
+                            .outputStructure(cp.getProblem().getOutputStructure())
+                            .testCases(sampleTestCases)
+                            .build();
+                })
                 .toList();
     }
 
@@ -111,6 +148,23 @@ public class ContestService {
                     .score(0)
                     .lastAcTime(null)
                     .build();
+            leaderboardRepository.save(entry);
+
+            // Broadcast the new leaderboard list via SSE
+            sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
+        }
+    }
+
+    @Transactional
+    public void submitContest(Long contestId, User user) {
+        Contest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
+
+        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
+                .orElseThrow(() -> new NotFoundException("User is not registered for this contest"));
+
+        if (entry.getStatus() != ParticipantStatus.FINISHED) {
+            entry.setStatus(ParticipantStatus.FINISHED);
             leaderboardRepository.save(entry);
 
             // Broadcast the new leaderboard list via SSE

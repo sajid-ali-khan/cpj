@@ -259,8 +259,8 @@ public class Judge0Client {
             return null;
         }
         try {
-            // Trim whitespace and newlines as Judge0 can return values with trailing newlines
-            return new String(Base64.getDecoder().decode(value.trim()), StandardCharsets.UTF_8);
+            // Use MimeDecoder to safely ignore newlines in the Base64 stream
+            return new String(Base64.getMimeDecoder().decode(value.trim()), StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
             log.warn("Value is not valid base64, returning original string: {}", value);
             return value;

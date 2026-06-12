@@ -74,6 +74,7 @@ public class LeaderboardService {
                             .rollNo(row.getUser().getRollNo())
                             .score(row.getScore())
                             .lastAcTime(row.getLastAcTime())
+                            .status(row.getStatus().name())
                             .build();
                 })
                 .toList();

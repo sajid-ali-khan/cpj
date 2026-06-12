@@ -15,4 +15,5 @@ public class LeaderboardEntryDto {
     private final String rollNo;
     private final int score;
     private final LocalDateTime lastAcTime;
+    private final String status;
 }
