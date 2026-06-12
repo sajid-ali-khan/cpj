@@ -25,6 +25,9 @@ public class User {
     @Column(length = 50)
     private String branch;
 
+    @Column(name = "active_session_token", length = 255)
+    private String activeSessionToken;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default

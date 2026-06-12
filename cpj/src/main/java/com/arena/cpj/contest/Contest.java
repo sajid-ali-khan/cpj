@@ -21,6 +21,9 @@ public class Contest {
     @Column(nullable = false, length = 200)
     private String title;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 

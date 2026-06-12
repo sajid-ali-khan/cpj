@@ -20,6 +20,8 @@ public interface LeaderboardRepository extends JpaRepository<Leaderboard, Long> 
      */
     Optional<Leaderboard> findByContestIdAndUserId(Long contestId, Long userId);
 
+    List<Leaderboard> findByUserId(Long userId);
+
     /**
      * Existence check used at contest-join time to prevent
      * duplicate leaderboard entries for the same (contest, user).

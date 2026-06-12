@@ -20,17 +20,20 @@ public class RollNoAuthInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
         String headerRollNo = request.getHeader(ROLL_NO_HEADER);
-        String rollNo = (headerRollNo != null && !headerRollNo.isBlank())
+        String token = (headerRollNo != null && !headerRollNo.isBlank())
                 ? headerRollNo
                 : request.getParameter(ROLL_NO_PARAM);
-        if (rollNo == null || rollNo.isBlank()) {
-            throw new UnauthorizedException("Missing roll number");
+        if (token == null || token.isBlank()) {
+            throw new UnauthorizedException("Missing session token");
         }
 
-        String resolvedRollNo = rollNo.trim();
-        User user = userRepository.findByRollNo(resolvedRollNo)
-                .orElseThrow(() -> new NotFoundException("User not found for roll number: " + resolvedRollNo));
+        String resolvedToken = token.trim();
+        User user = userRepository.findByActiveSessionToken(resolvedToken)
+                .orElseThrow(() -> new UnauthorizedException("Session invalid or expired. Please log in again."));
         UserContext.set(user);
         return true;
     }

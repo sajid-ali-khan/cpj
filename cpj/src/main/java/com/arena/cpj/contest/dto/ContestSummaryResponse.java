@@ -12,7 +12,9 @@ public class ContestSummaryResponse {
 
     private final Long id;
     private final String title;
+    private final String description;
     private final LocalDateTime startTime;
     private final Integer durationMins;
     private final ContestStatus status;
+    private final java.util.List<Long> problemIds;
 }

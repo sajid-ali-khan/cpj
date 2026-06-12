@@ -27,6 +27,7 @@ public class AdminContestService {
 
         Contest contest = Contest.builder()
                 .title(request.getTitle().trim())
+                .description(request.getDescription() != null ? request.getDescription().trim() : null)
                 .startTime(request.getStartTime())
                 .durationMins(request.getDurationMins())
                 .status(ContestStatus.UPCOMING)
@@ -152,6 +153,7 @@ public class AdminContestService {
         return ContestResponse.builder()
                 .id(contest.getId())
                 .title(contest.getTitle())
+                .description(contest.getDescription())
                 .startTime(contest.getStartTime())
                 .durationMins(contest.getDurationMins())
                 .status(contest.getStatus())

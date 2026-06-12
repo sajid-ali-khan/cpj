@@ -21,15 +21,16 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(rollNoAuthInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/internal/**", "/api/contests/current", "/api/contests", "/api/leaderboard");
+                .excludePathPatterns("/internal/**", "/api/student/login", "/api/admin/login");
         registry.addInterceptor(adminAuthInterceptor)
-                .addPathPatterns("/api/admin/**");
+                .addPathPatterns("/api/admin/**")
+                .excludePathPatterns("/api/admin/login");
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns("http://localhost:5173", "http://localhost:5174")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);

@@ -13,6 +13,7 @@ import java.util.List;
 public class CreateContestRequest {
 
     private String title;
+    private String description;
     private LocalDateTime startTime;
     private Integer durationMins;
     private List<ContestProblemRequest> problems;
