@@ -8,7 +8,6 @@ import com.arena.cpj.event.dto.ContestEventDto;
 import com.arena.cpj.leaderboard.Leaderboard;
 import com.arena.cpj.leaderboard.LeaderboardRepository;
 import com.arena.cpj.leaderboard.LeaderboardService;
-import com.arena.cpj.problem.TestCase;
 import com.arena.cpj.problem.TestCaseRepository;
 import com.arena.cpj.user.User;
 import com.arena.cpj.user.UserRole;
@@ -157,9 +156,7 @@ public class ContestService {
 
     @Transactional
     public void submitContest(Long contestId, User user) {
-        Contest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
-
+        
         Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
                 .orElseThrow(() -> new NotFoundException("User is not registered for this contest"));
 

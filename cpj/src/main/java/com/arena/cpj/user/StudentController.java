@@ -1,7 +1,6 @@
 package com.arena.cpj.user;
 
 import com.arena.cpj.common.NotFoundException;
-import com.arena.cpj.leaderboard.Leaderboard;
 import com.arena.cpj.leaderboard.LeaderboardRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

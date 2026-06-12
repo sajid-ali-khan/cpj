@@ -1,6 +1,5 @@
 package com.arena.cpj.auth;
 
-import com.arena.cpj.common.NotFoundException;
 import com.arena.cpj.user.User;
 import com.arena.cpj.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
