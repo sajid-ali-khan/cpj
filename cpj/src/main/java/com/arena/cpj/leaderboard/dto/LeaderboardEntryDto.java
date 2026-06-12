@@ -16,4 +16,7 @@ public class LeaderboardEntryDto {
     private final int score;
     private final LocalDateTime lastAcTime;
     private final String status;
+    private final int solvedCount;
+    private final int totalQuestions;
+    private final int maxScore;
 }

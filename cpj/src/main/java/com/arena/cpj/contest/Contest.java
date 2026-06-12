@@ -35,6 +35,14 @@ public class Contest {
     @Builder.Default
     private ContestStatus status = ContestStatus.UPCOMING;
 
+    @Column(name = "problem_count", nullable = false)
+    @Builder.Default
+    private Integer problemCount = 0;
+
+    @Column(name = "max_score", nullable = false)
+    @Builder.Default
+    private Integer maxScore = 0;
+
     /**
      * Check if contest time has expired (current time > start + duration)
      */

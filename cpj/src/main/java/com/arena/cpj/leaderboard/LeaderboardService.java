@@ -41,9 +41,11 @@ public class LeaderboardService {
                         .contest(contest)
                         .user(user)
                         .score(0)
+                        .solvedCount(0)
                         .build());
 
         entry.setScore(entry.getScore() + contestProblem.getPoints());
+        entry.setSolvedCount(entry.getSolvedCount() + 1);
         entry.setLastAcTime(acTime);
         leaderboardRepository.save(entry);
 
@@ -51,7 +53,7 @@ public class LeaderboardService {
                         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                                 @Override
                                 public void afterCommit() {
-                                        sseService.broadcastLeaderboard(getLeaderboard(contest.getId()));
+                                         sseService.broadcastLeaderboard(getLeaderboard(contest.getId()));
                                 }
                         });
                 } else {
@@ -67,6 +69,7 @@ public class LeaderboardService {
         return java.util.stream.IntStream.range(0, rows.size())
                 .mapToObj(i -> {
                     Leaderboard row = rows.get(i);
+                    Contest contest = row.getContest();
                     return LeaderboardEntryDto.builder()
                             .rank(i + 1)
                             .userId(row.getUser().getId())
@@ -75,6 +78,9 @@ public class LeaderboardService {
                             .score(row.getScore())
                             .lastAcTime(row.getLastAcTime())
                             .status(row.getStatus().name())
+                            .solvedCount(row.getSolvedCount())
+                            .totalQuestions(contest.getProblemCount())
+                            .maxScore(contest.getMaxScore())
                             .build();
                 })
                 .toList();

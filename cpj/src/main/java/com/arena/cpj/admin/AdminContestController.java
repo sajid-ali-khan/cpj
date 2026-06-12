@@ -43,4 +43,9 @@ public class AdminContestController {
     public ContestResponse update(@PathVariable Long id, @RequestBody CreateContestRequest request) {
         return adminContestService.update(id, request);
     }
+
+    @GetMapping("/{id}/submissions")
+    public List<com.arena.cpj.admin.dto.AdminSubmissionResponse> getSubmissions(@PathVariable Long id) {
+        return adminContestService.getContestSubmissions(id);
+    }
 }

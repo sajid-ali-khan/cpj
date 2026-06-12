@@ -40,6 +40,10 @@ public class Leaderboard {
     @Builder.Default
     private ParticipantStatus status = ParticipantStatus.NOT_STARTED;
 
+    @Column(name = "solved_count", nullable = false)
+    @Builder.Default
+    private Integer solvedCount = 0;
+
     /** Timestamp of the most recent accepted submission; null until first AC */
     @Column(name = "last_ac_time")
     private LocalDateTime lastAcTime;

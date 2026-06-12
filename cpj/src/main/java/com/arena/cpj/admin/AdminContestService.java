@@ -20,10 +20,16 @@ public class AdminContestService {
     private final ContestProblemRepository contestProblemRepository;
     private final ProblemRepository problemRepository;
     private final ContestService contestService;
+    private final com.arena.cpj.submission.SubmissionRepository submissionRepository;
 
     @Transactional
     public ContestResponse create(CreateContestRequest request) {
         validate(request);
+
+        int problemCount = request.getProblems().size();
+        int maxScore = request.getProblems().stream()
+                .mapToInt(p -> p.getPoints() != null ? p.getPoints() : 0)
+                .sum();
 
         Contest contest = Contest.builder()
                 .title(request.getTitle().trim())
@@ -31,6 +37,8 @@ public class AdminContestService {
                 .startTime(request.getStartTime())
                 .durationMins(request.getDurationMins())
                 .status(ContestStatus.UPCOMING)
+                .problemCount(problemCount)
+                .maxScore(maxScore)
                 .build();
         contest = contestRepository.save(contest);
 
@@ -170,10 +178,36 @@ public class AdminContestService {
             throw new BadRequestException("Cannot edit an ended contest");
         }
 
+        if (contest.getStatus() == ContestStatus.ONGOING) {
+            if (contest.getStartTime().compareTo(request.getStartTime()) != 0) {
+                throw new BadRequestException("Cannot change start time of an ongoing contest");
+            }
+            List<ContestProblem> existingProblems = contestProblemRepository.findByIdContestIdOrderByDisplayOrderAsc(id);
+            if (existingProblems.size() != request.getProblems().size()) {
+                throw new BadRequestException("Cannot add or remove questions from an ongoing contest");
+            }
+            for (ContestProblemRequest reqProb : request.getProblems()) {
+                ContestProblem existing = existingProblems.stream()
+                        .filter(ep -> ep.getProblem().getId().equals(reqProb.getProblemId()))
+                        .findFirst()
+                        .orElseThrow(() -> new BadRequestException("Cannot change questions of an ongoing contest"));
+                if (!existing.getPoints().equals(reqProb.getPoints())) {
+                    throw new BadRequestException("Cannot modify question points while a contest is ongoing");
+                }
+            }
+        }
+
+        int problemCount = request.getProblems().size();
+        int maxScore = request.getProblems().stream()
+                .mapToInt(p -> p.getPoints() != null ? p.getPoints() : 0)
+                .sum();
+
         contest.setTitle(request.getTitle().trim());
         contest.setDescription(request.getDescription() != null ? request.getDescription().trim() : null);
         contest.setStartTime(request.getStartTime());
         contest.setDurationMins(request.getDurationMins());
+        contest.setProblemCount(problemCount);
+        contest.setMaxScore(maxScore);
         contest = contestRepository.save(contest);
 
         contestProblemRepository.deleteByIdContestId(id);
@@ -184,5 +218,37 @@ public class AdminContestService {
         }
 
         return toResponse(contest);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminSubmissionResponse> getContestSubmissions(Long contestId) {
+        if (!contestRepository.existsById(contestId)) {
+            throw new NotFoundException("Contest not found: " + contestId);
+        }
+
+        return submissionRepository.findByContestIdOrderBySubmittedAtDesc(contestId).stream()
+                .map(sub -> {
+                    String languageName = "Java";
+                    if (sub.getLanguageId() != null) {
+                        switch (sub.getLanguageId()) {
+                            case 54: languageName = "C++"; break;
+                            case 71: languageName = "Python"; break;
+                            default: languageName = "Java"; break;
+                        }
+                    }
+
+                    return AdminSubmissionResponse.builder()
+                            .id(sub.getId())
+                            .studentName(sub.getUser().getName())
+                            .studentRoll(sub.getUser().getRollNo())
+                            .questionTitle(sub.getProblem().getTitle())
+                            .language(languageName)
+                            .verdict(sub.getVerdict())
+                            .timeMs(sub.getTimeMs())
+                            .memoryKb(sub.getMemoryKb())
+                            .submittedAt(sub.getSubmittedAt())
+                            .build();
+                })
+                .toList();
     }
 }
