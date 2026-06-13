@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -36,7 +37,6 @@ public class AdminContestService {
                 .description(request.getDescription() != null ? request.getDescription().trim() : null)
                 .startTime(request.getStartTime())
                 .durationMins(request.getDurationMins())
-                .status(ContestStatus.UPCOMING)
                 .problemCount(problemCount)
                 .maxScore(maxScore)
                 .build();
@@ -63,36 +63,21 @@ public class AdminContestService {
 
     @Transactional
     public ContestResponse start(Long id) {
-        Contest contest = findContest(id);
-        
-        if (contest.getStatus() == ContestStatus.ENDED) {
-            throw new BadRequestException("Cannot start an ended contest");
-        }
-
-        // End any other ONGOING contests before starting this one
-        contestRepository.findAllByStatus(ContestStatus.ONGOING).forEach(other -> {
-            if (!other.getId().equals(contest.getId())) {
-                contestService.transitionStatus(other, ContestStatus.ENDED);
-            }
-        });
-
-        // Start this contest (only if not already ONGOING)
-        if (contest.getStatus() != ContestStatus.ONGOING) {
-            contestService.transitionStatus(contest, ContestStatus.ONGOING);
-        }
-        
-        return toResponse(contest);
+        throw new BadRequestException("Manual starting is disabled. Contests start automatically at their scheduled time.");
     }
 
     @Transactional
     public ContestResponse end(Long id) {
         Contest contest = findContest(id);
+        Instant now = Instant.now();
         
-        if (contest.getStatus() != ContestStatus.ONGOING) {
-            throw new BadRequestException("Can only end an ONGOING contest");
+        if (contest.getPhase(now) != ContestPhase.LIVE) {
+            throw new BadRequestException("Can only end a LIVE contest");
         }
         
-        contestService.transitionStatus(contest, ContestStatus.ENDED);
+        int elapsedMins = (int) java.time.Duration.between(contest.getStartTime(), now).toMinutes();
+        contest.setDurationMins(Math.max(0, elapsedMins));
+        contestRepository.save(contest);
         return toResponse(contest);
     }
 
@@ -164,7 +149,7 @@ public class AdminContestService {
                 .description(contest.getDescription())
                 .startTime(contest.getStartTime())
                 .durationMins(contest.getDurationMins())
-                .status(contest.getStatus())
+                .phase(contest.getPhase(Instant.now()))
                 .problems(problems)
                 .build();
     }
@@ -174,25 +159,27 @@ public class AdminContestService {
         validate(request);
         Contest contest = findContest(id);
 
-        if (contest.getStatus() == ContestStatus.ENDED) {
-            throw new BadRequestException("Cannot edit an ended contest");
+        Instant now = Instant.now();
+        ContestPhase currentPhase = contest.getPhase(now);
+        if (currentPhase == ContestPhase.FINISHED) {
+            throw new BadRequestException("Cannot edit a finished contest");
         }
 
-        if (contest.getStatus() == ContestStatus.ONGOING) {
+        if (currentPhase == ContestPhase.LIVE) {
             if (contest.getStartTime().compareTo(request.getStartTime()) != 0) {
-                throw new BadRequestException("Cannot change start time of an ongoing contest");
+                throw new BadRequestException("Cannot change start time of a live contest");
             }
             List<ContestProblem> existingProblems = contestProblemRepository.findByIdContestIdOrderByDisplayOrderAsc(id);
             if (existingProblems.size() != request.getProblems().size()) {
-                throw new BadRequestException("Cannot add or remove questions from an ongoing contest");
+                throw new BadRequestException("Cannot add or remove questions from a live contest");
             }
             for (ContestProblemRequest reqProb : request.getProblems()) {
                 ContestProblem existing = existingProblems.stream()
                         .filter(ep -> ep.getProblem().getId().equals(reqProb.getProblemId()))
                         .findFirst()
-                        .orElseThrow(() -> new BadRequestException("Cannot change questions of an ongoing contest"));
+                        .orElseThrow(() -> new BadRequestException("Cannot change questions of a live contest"));
                 if (!existing.getPoints().equals(reqProb.getPoints())) {
-                    throw new BadRequestException("Cannot modify question points while a contest is ongoing");
+                    throw new BadRequestException("Cannot modify question points while a contest is live");
                 }
             }
         }

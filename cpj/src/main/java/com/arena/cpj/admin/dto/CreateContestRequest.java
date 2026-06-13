@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Getter
@@ -14,7 +14,7 @@ public class CreateContestRequest {
 
     private String title;
     private String description;
-    private LocalDateTime startTime;
+    private Instant startTime;
     private Integer durationMins;
     private List<ContestProblemRequest> problems;
 }

@@ -6,7 +6,7 @@ import com.arena.cpj.config.Judge0Properties;
 import com.arena.cpj.contest.Contest;
 import com.arena.cpj.contest.ContestProblemRepository;
 import com.arena.cpj.contest.ContestRepository;
-import com.arena.cpj.contest.ContestStatus;
+import com.arena.cpj.contest.ContestPhase;
 import com.arena.cpj.judge0.*;
 import com.arena.cpj.problem.Problem;
 import com.arena.cpj.problem.ProblemRepository;
@@ -23,6 +23,8 @@ import com.arena.cpj.leaderboard.ParticipantStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.time.Instant;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -67,9 +69,9 @@ public class SubmissionService {
                     return new NotFoundException("Contest not found: " + contestId);
                 });
         
-        // Guard 1: Check contest status is ONGOING
-        if (contest.getStatus() != ContestStatus.ONGOING) {
-            log.warn("Contest validation failed: Contest ID {} status is {}", contestId, contest.getStatus());
+        // Guard 1: Check contest phase is LIVE
+        if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
+            log.warn("Contest validation failed: Contest ID {} phase is not LIVE", contestId);
             throw new BadRequestException("Contest is not active");
         }
         
@@ -288,7 +290,7 @@ public class SubmissionService {
             throw new ForbiddenException("You have already submitted this contest");
         }
 
-        if (contest.getStatus() != ContestStatus.ONGOING) {
+        if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
             throw new BadRequestException("Contest is not active");
         }
         if (contest.isExpired()) {

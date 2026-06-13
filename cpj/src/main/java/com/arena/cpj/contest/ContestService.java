@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -32,10 +33,12 @@ public class ContestService {
     private final TestCaseRepository testCaseRepository;
 
     @Transactional(readOnly = true)
-    public ContestSummaryResponse getCurrentContest() {
-        Contest contest = contestRepository.findByStatus(ContestStatus.ONGOING)
-                .orElseThrow(() -> new NotFoundException("No ongoing contest"));
-        return toSummary(contest);
+    public List<ContestSummaryResponse> getCurrentContest() {
+        Instant now = Instant.now();
+        return contestRepository.findAllByOrderByStartTimeDesc().stream()
+                .filter(c -> c.getPhase(now) == ContestPhase.LIVE)
+                .map(this::toSummary)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -47,12 +50,14 @@ public class ContestService {
 
     @Transactional
     public List<ContestProblemSummaryResponse> getContestProblems(Long contestId) {
-        if (!contestRepository.existsById(contestId)) {
-            throw new NotFoundException("Contest not found: " + contestId);
-        }
+        Contest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
 
         User currentUser = UserContext.get();
         if (currentUser != null && currentUser.getRole() == UserRole.STUDENT) {
+            if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
+                throw new ForbiddenException("This contest is not live.");
+            }
             Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, currentUser.getId())
                     .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
             if (entry.getStatus() == ParticipantStatus.FINISHED) {
@@ -72,10 +77,10 @@ public class ContestService {
                             .findByProblemIdAndIsSampleTrue(cp.getProblem().getId())
                             .stream()
                             .map(tc -> ContestProblemSummaryResponse.SampleTestCaseDto.builder()
-                                    .input(tc.getStdin())
-                                    .output(tc.getExpectedOutput())
-                                    .isHidden(false)
-                                    .build())
+                                     .input(tc.getStdin())
+                                     .output(tc.getExpectedOutput())
+                                     .isHidden(false)
+                                     .build())
                             .toList();
 
                     return ContestProblemSummaryResponse.builder()
@@ -106,28 +111,9 @@ public class ContestService {
                 .description(contest.getDescription())
                 .startTime(contest.getStartTime())
                 .durationMins(contest.getDurationMins())
-                .status(contest.getStatus())
+                .phase(contest.getPhase(Instant.now()))
                 .problemIds(problemIds)
                 .build();
-    }
-
-    /**
-     * Shared method for all status transitions (automatic and manual).
-     * Persists the new status and broadcasts contest event to all SSE emitters.
-     *
-     * @param contest The contest to transition
-     * @param newStatus The target status
-     */
-    @Transactional
-    public void transitionStatus(Contest contest, ContestStatus newStatus) {
-        contest.setStatus(newStatus);
-        contestRepository.save(contest);
-
-        // Broadcast contest status change to all connected students
-        sseService.broadcastContestEvent(ContestEventDto.builder()
-                .contestId(contest.getId())
-                .status(newStatus)
-                .build());
     }
 
     @Transactional
@@ -135,8 +121,8 @@ public class ContestService {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
 
-        if (contest.getStatus() == ContestStatus.ENDED) {
-            throw new com.arena.cpj.common.BadRequestException("Cannot register for an ended contest");
+        if (contest.getPhase(Instant.now()) == ContestPhase.FINISHED) {
+            throw new com.arena.cpj.common.BadRequestException("Cannot register for a finished contest");
         }
 
         boolean exists = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId()).isPresent();

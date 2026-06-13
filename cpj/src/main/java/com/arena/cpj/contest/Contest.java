@@ -3,7 +3,8 @@ package com.arena.cpj.contest;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "contests")
@@ -25,15 +26,10 @@ public class Contest {
     private String description;
 
     @Column(name = "start_time", nullable = false)
-    private LocalDateTime startTime;
+    private Instant startTime;
 
     @Column(name = "duration_mins", nullable = false)
     private Integer durationMins;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    @Builder.Default
-    private ContestStatus status = ContestStatus.UPCOMING;
 
     @Column(name = "problem_count", nullable = false)
     @Builder.Default
@@ -44,17 +40,31 @@ public class Contest {
     private Integer maxScore = 0;
 
     /**
+     * Get the current contest phase based on startTime and duration
+     */
+    public ContestPhase getPhase(Instant now) {
+        if (now.isBefore(startTime)) {
+            return ContestPhase.UPCOMING;
+        }
+        Instant endTime = startTime.plus(durationMins, ChronoUnit.MINUTES);
+        if (now.isBefore(endTime)) {
+            return ContestPhase.LIVE;
+        }
+        return ContestPhase.FINISHED;
+    }
+
+    /**
      * Check if contest time has expired (current time > start + duration)
      */
     public boolean isExpired() {
-        LocalDateTime endTime = startTime.plusMinutes(durationMins);
-        return LocalDateTime.now().isAfter(endTime);
+        Instant endTime = startTime.plus(durationMins, ChronoUnit.MINUTES);
+        return Instant.now().isAfter(endTime);
     }
 
     /**
      * Check if contest has started (current time >= start time)
      */
     public boolean hasStarted() {
-        return LocalDateTime.now().isAfter(startTime) || LocalDateTime.now().equals(startTime);
+        return Instant.now().isAfter(startTime) || Instant.now().equals(startTime);
     }
 }

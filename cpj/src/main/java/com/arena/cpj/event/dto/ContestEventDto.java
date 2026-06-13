@@ -1,6 +1,6 @@
 package com.arena.cpj.event.dto;
 
-import com.arena.cpj.contest.ContestStatus;
+import com.arena.cpj.contest.ContestPhase;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,5 +12,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ContestEventDto {
     private Long contestId;
-    private ContestStatus status;
+    private ContestPhase phase;
 }

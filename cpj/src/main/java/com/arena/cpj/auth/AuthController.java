@@ -20,7 +20,7 @@ public class AuthController {
 
     private final UserRepository userRepository;
 
-    @Value("${cpj.admin.password:admin123}")
+    @Value("${cpj.admin.password}")
     private String adminPassword;
 
     @PostMapping("/student/login")
@@ -37,12 +37,10 @@ public class AuthController {
                     .body(Map.of("error", "Access denied. Student role required."));
         }
 
-        // Generate and save active session token
         String token = "STU-SESSION-" + java.util.UUID.randomUUID().toString();
         user.setActiveSessionToken(token);
         userRepository.save(user);
 
-        // Response format expected by InstuteArenaFrontend
         Map<String, Object> response = Map.of(
             "token", token,
             "user", Map.of(

@@ -15,7 +15,7 @@ public class ContestController {
     private final ContestService contestService;
 
     @GetMapping("/current")
-    public ContestSummaryResponse getCurrent() {
+    public List<ContestSummaryResponse> getCurrent() {
         return contestService.getCurrentContest();
     }
 
