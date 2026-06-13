@@ -7,7 +7,7 @@
   <div class="header-bar">
     <div><a routerLink="/student/dashboard" class="back-link">&larr; Back to Dashboard</a><h2 class="header-title">Coding Arena</h2></div>
     <div class="problem-tabs">
-      @for (prob of state.problems; track prob.problemId; let i = $index) { <button (click)="onProblemChange(i)" class="btn btn-problem" [class.btn-primary]="state.activeQ === i">Q{{ i + 1 }} ({{ prob.points }} pts)</button> }
+      @for (prob of state.problems; track prob.problemId; let i = $index) { <button (click)="onProblemChange(i)" class="btn btn-problem" [class.btn-primary]="state.activeQ === i" [class.solved]="state.isSolved(prob.problemId)">Q{{ i + 1 }} ({{ prob.points }} pts)</button> }
     </div>
     <div class="header-actions">
       <button (click)="showLeaderboardModal = true; state.loadLeaderboard(state.contestId)" class="btn">Leaderboard</button>
@@ -24,7 +24,7 @@
         <div class="panel-left-content">
           @if (leftTab === 'description' && state.problems[state.activeQ]) {
             <div class="card card-description">
-              <h3 class="card-title">{{ state.problems[state.activeQ].title }} <span class="card-difficulty">({{ state.problems[state.activeQ].difficulty }} | {{ state.problems[state.activeQ].points }} pts)</span></h3>
+              <h3 class="card-title">{{ state.problems[state.activeQ].title }} <span class="card-difficulty">({{ state.problems[state.activeQ].difficulty }} | {{ state.problems[state.activeQ].points }} pts)</span> <span [class]="state.isSolved(state.problems[state.activeQ].problemId) ? 'badge-solved' : 'badge-unsolved'">{{ state.isSolved(state.problems[state.activeQ].problemId) ? 'Solved' : 'Unsolved' }}</span></h3>
               <div class="problem-desc">{{ state.problems[state.activeQ].description }}</div>
               @if (state.problems[state.activeQ].constraints) { <h4 class="sub-heading">Constraints</h4><pre class="pre-box">{{ state.problems[state.activeQ].constraints }}</pre> }
               @if (state.problems[state.activeQ].inputStructure) { <h4 class="sub-heading">Input Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].inputStructure }}</div> }

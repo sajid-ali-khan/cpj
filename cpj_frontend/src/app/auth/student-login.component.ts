@@ -39,6 +39,9 @@ import { AuthService } from '../core/auth.service';
 })
 export class StudentLoginComponent {
   rollNumber = '';
+  otp = '';
+  otpSent = false;
+  successMessage = '';
   errorMessage = '';
   loading = false;
 
@@ -48,7 +51,7 @@ export class StudentLoginComponent {
     private router: Router
   ) {}
 
-  onSubmit(): void {
+  onRequestOtp(): void {
     if (!this.rollNumber.trim()) {
       this.errorMessage = 'Roll Number is required';
       return;
@@ -56,8 +59,31 @@ export class StudentLoginComponent {
 
     this.loading = true;
     this.errorMessage = '';
+    this.successMessage = '';
 
-    this.apiService.loginStudent(this.rollNumber.trim()).subscribe({
+    this.apiService.sendOtp(this.rollNumber.trim()).subscribe({
+      next: (response) => {
+        this.loading = false;
+        this.otpSent = true;
+        this.successMessage = response.message || 'OTP sent successfully to your registered email.';
+      },
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = err.error?.error || err.message || 'Failed to send OTP';
+      }
+    });
+  }
+
+  onVerifyOtp(): void {
+    if (!this.otp.trim()) {
+      this.errorMessage = 'OTP is required';
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+
+    this.apiService.verifyOtp(this.rollNumber.trim(), this.otp.trim()).subscribe({
       next: (response) => {
         this.authService.setStudentSession(
           response.user.rollNumber,
@@ -68,8 +94,15 @@ export class StudentLoginComponent {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage = err.error?.error || err.message || 'Failed to authenticate';
+        this.errorMessage = err.error?.error || err.message || 'Verification failed';
       }
     });
+  }
+
+  resetFlow(): void {
+    this.otpSent = false;
+    this.otp = '';
+    this.errorMessage = '';
+    this.successMessage = '';
   }
 }

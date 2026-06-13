@@ -25,6 +25,9 @@ public class User {
     @Column(length = 50)
     private String branch;
 
+    @Column(unique = true, length = 255)
+    private String email;
+
     @Column(name = "active_session_token", length = 255)
     private String activeSessionToken;
 

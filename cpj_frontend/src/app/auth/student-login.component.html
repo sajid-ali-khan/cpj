@@ -19,23 +19,65 @@
     </div>
   }
 
-  <form (ngSubmit)="onSubmit()">
-    <div class="form-group">
-      <label for="rollNumber">Roll Number / Registration ID</label>
-      <input
-        type="text"
-        id="rollNumber"
-        name="rollNumber"
-        [(ngModel)]="rollNumber"
-        placeholder="e.g. 22CSE041"
-        required
-        autocomplete="off"
-        style="text-transform: uppercase;"
-      />
+  @if (successMessage) {
+    <div class="alert alert-success" style="background-color: rgba(40, 167, 69, 0.1); border-color: rgba(40, 167, 69, 0.2); color: #28a745; padding: 12px; margin-bottom: 20px; border-radius: 4px; font-size: 14px;">
+      {{ successMessage }}
     </div>
+  }
 
-    <button type="submit" class="btn btn-success btn-submit" [disabled]="loading">
-      {{ loading ? 'Authenticating...' : 'Verify & Enter Arena' }}
-    </button>
-  </form>
+  @if (!otpSent) {
+    <form (ngSubmit)="onRequestOtp()">
+      <div class="form-group">
+        <label for="rollNumber">Roll Number / Registration ID</label>
+        <input
+          type="text"
+          id="rollNumber"
+          name="rollNumber"
+          [(ngModel)]="rollNumber"
+          placeholder="e.g. 22CSE041"
+          required
+          autocomplete="off"
+          style="text-transform: uppercase;"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-success btn-submit" [disabled]="loading">
+        {{ loading ? 'Sending OTP...' : 'Request OTP' }}
+      </button>
+    </form>
+  } @else {
+    <form (ngSubmit)="onVerifyOtp()">
+      <div class="form-group">
+        <label>Verifying Roll Number</label>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">
+          {{ rollNumber }}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="otp">Enter 6-Digit OTP</label>
+        <input
+          type="text"
+          id="otp"
+          name="otp"
+          [(ngModel)]="otp"
+          placeholder="e.g. 123456"
+          required
+          maxlength="6"
+          autocomplete="off"
+          style="letter-spacing: 4px; text-align: center; font-size: 20px; font-weight: bold;"
+        />
+      </div>
+
+      <button type="submit" class="btn btn-success btn-submit" [disabled]="loading">
+        {{ loading ? 'Verifying...' : 'Verify & Enter Arena' }}
+      </button>
+
+      <div style="margin-top: 15px; text-align: center;">
+        <a href="javascript:void(0)" (click)="resetFlow()" style="font-size: 13px;">
+          &larr; Change Roll Number or Request New OTP
+        </a>
+      </div>
+    </form>
+  }
 </div>

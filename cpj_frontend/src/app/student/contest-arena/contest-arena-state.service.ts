@@ -54,9 +54,9 @@ export class ContestArenaStateService {
     this.apiService.getLeaderboard(contestId).subscribe({ next: (d) => this.leaderboard = d });
   }
 
-  get problemSubmissions(): any[] {
-    return this.submissions.filter((s: any) => s.problemId === this.problems[this.activeQ]?.problemId);
-  }
+  get problemSubmissions(): any[] { return this.submissions.filter((s: any) => s.problemId === this.problems[this.activeQ]?.problemId); }
+
+  isSolved(problemId: number): boolean { return this.submissions.some((s: any) => s.problemId === problemId && s.verdict === 'ACCEPTED'); }
 
   updateConsoleOutput(): void {
     if (!this.runResult) return;

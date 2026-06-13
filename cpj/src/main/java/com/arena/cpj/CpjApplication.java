@@ -6,8 +6,11 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import jakarta.annotation.PostConstruct;
 import java.util.TimeZone;
 
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+
 @SpringBootApplication
 @EnableScheduling
+@EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 public class CpjApplication {
 
 	@PostConstruct

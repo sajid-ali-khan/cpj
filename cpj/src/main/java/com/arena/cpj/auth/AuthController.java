@@ -19,12 +19,13 @@ import java.util.Map;
 public class AuthController {
 
     private final UserRepository userRepository;
+    private final OtpService otpService;
 
     @Value("${cpj.admin.password}")
     private String adminPassword;
 
-    @PostMapping("/student/login")
-    public ResponseEntity<?> studentLogin(@RequestBody StudentLoginRequest request) {
+    @PostMapping("/student/login/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody SendOtpRequest request) {
         if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Roll number is required"));
         }
@@ -37,6 +38,31 @@ public class AuthController {
                     .body(Map.of("error", "Access denied. Student role required."));
         }
 
+        otpService.generateAndSendOtp(user);
+        return ResponseEntity.ok(Map.of("success", true, "message", "OTP sent successfully to " + maskEmail(user.getEmail())));
+    }
+
+    @PostMapping("/student/login/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
+        if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Roll number is required"));
+        }
+        if (request.getOtp() == null || request.getOtp().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "OTP code is required"));
+        }
+
+        String rollNo = request.getRollNumber().trim();
+        User user = userRepository.findByRollNo(rollNo)
+                .orElseThrow(() -> new UnauthorizedException("User not found for roll number: " + rollNo));
+
+        if (user.getRole() != UserRole.STUDENT) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access denied. Student role required."));
+        }
+
+        otpService.verifyOtp(user, request.getOtp());
+
+        // Login successful - generate active session token
         String token = "STU-SESSION-" + java.util.UUID.randomUUID().toString();
         user.setActiveSessionToken(token);
         userRepository.save(user);
@@ -94,12 +120,31 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    private String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "";
+        }
+        int atIndex = email.indexOf("@");
+        String namePart = email.substring(0, atIndex);
+        String domainPart = email.substring(atIndex);
+        if (namePart.length() <= 2) {
+            return namePart + domainPart;
+        }
+        return namePart.charAt(0) + "***" + namePart.charAt(namePart.length() - 1) + domainPart;
+    }
+
     @Getter
     @Setter
-    public static class StudentLoginRequest {
-        private String contestId;
+    public static class SendOtpRequest {
         private String rollNumber;
-        private String password;
+    }
+
+    @Getter
+    @Setter
+    public static class VerifyOtpRequest {
+        private String rollNumber;
+        private String otp;
+        private String contestId;
     }
 
     @Getter

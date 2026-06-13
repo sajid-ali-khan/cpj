@@ -288,10 +288,10 @@ public class SubmissionService {
 
     @Transactional
     public StudentSubmitResponse submitSynchronous(SubmitRequest request) {
-        log.info("Synchronous submission started - User RollNo: {}, Problem ID: {}", request.getRollNumber(), request.getQuestionId());
-
-        User user = userRepository.findByRollNo(request.getRollNumber())
-                .orElseThrow(() -> new NotFoundException("User not found: " + request.getRollNumber()));
+        User user = com.arena.cpj.auth.UserContext.get();
+        if (user == null) {
+            throw new com.arena.cpj.auth.UnauthorizedException("Session invalid or expired. Please log in again.");
+        }
 
         Contest contest = contestRepository.findById(request.getContestId())
                 .orElseThrow(() -> new NotFoundException("Contest not found: " + request.getContestId()));

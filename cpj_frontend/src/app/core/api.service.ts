@@ -26,8 +26,12 @@ export class ApiService {
   }
 
   // --- Auth endpoints ---
-  loginStudent(rollNumber: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/student/login`, { rollNumber }, { headers: this.getHeaders() });
+  sendOtp(rollNumber: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/student/login/send-otp`, { rollNumber }, { headers: this.getHeaders() });
+  }
+
+  verifyOtp(rollNumber: string, otp: string, contestId?: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/student/login/verify-otp`, { rollNumber, otp, contestId }, { headers: this.getHeaders() });
   }
 
   loginAdmin(username: string, password: string): Observable<any> {
