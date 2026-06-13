@@ -28,11 +28,12 @@
       </ul>
     </div>
 
-    <div>
-      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; word-break: break-all;">
-        Logged: <strong>{{ adminName }}</strong>
+    <div style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 15px;">
+      <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Logged in as</div>
+      <div style="font-size: 13px; color: var(--text-bright); font-weight: 600; margin-bottom: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        {{ adminName }}
       </div>
-      <button (click)="logout()" class="btn" style="width: 100%;">Log Out</button>
+      <button (click)="logout()" class="btn btn-danger" style="width: 100%; font-size: 12px; padding: 5px 8px;">Log Out</button>
     </div>
   </div>
 

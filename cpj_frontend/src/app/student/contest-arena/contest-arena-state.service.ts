@@ -27,10 +27,9 @@ export class ContestArenaStateService {
   leaderboard: any[] = [];
   runResult: any = null;
 
-  constructor(
-    private apiService: ApiService,
-    private authService: AuthService
-  ) {}
+  constructor(private apiService: ApiService, private authService: AuthService) {}
+
+  get rollNo(): string { return this.authService.rollNumber() || ''; }
 
   loadProblems(contestId: number, success: () => void, error: () => void): void {
     this.apiService.getContestProblems(contestId).subscribe({
