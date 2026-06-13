@@ -1,0 +1,53 @@
+<!--
+  File: admin-login.component.html
+  Purpose: Markup for the admin control console credential entry screen.
+-->
+
+<div class="login-container">
+  <div style="margin-bottom: 20px;">
+    <a routerLink="/" style="font-size: 13px;">&larr; Back to Home</a>
+  </div>
+
+  <h2>Admin Control Console</h2>
+  <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 25px;">
+    Log in using your administrator credentials.
+  </p>
+
+  @if (errorMessage) {
+    <div class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <form (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="username">Username / Organizer ID</label>
+      <input
+        type="text"
+        id="username"
+        name="username"
+        [(ngModel)]="username"
+        placeholder="e.g. admin"
+        required
+        autocomplete="username"
+      />
+    </div>
+
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        [(ngModel)]="password"
+        placeholder="••••••••"
+        required
+        autocomplete="current-password"
+      />
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-submit" [disabled]="loading">
+      {{ loading ? 'Accessing Console...' : 'Log In to Dashboard' }}
+    </button>
+  </form>
+</div>

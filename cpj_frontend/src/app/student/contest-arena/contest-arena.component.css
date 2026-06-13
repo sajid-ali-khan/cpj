@@ -1,0 +1,10 @@
+/*
+ * File: contest-arena.component.css
+ * Purpose: Adjust layout heights to eliminate empty space at the bottom of the screen and increase editor height.
+ */
+.split-layout {
+  flex-grow: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin-bottom: 0 !important;
+}

@@ -215,16 +215,13 @@ public class SubmissionService {
 
             boolean allPassed = true;
             StringBuilder consoleBuilder = new StringBuilder();
+            List<CompileResponse.TestCaseResult> tcResults = new java.util.ArrayList<>();
 
             for (int i = 0; i < results.size(); i++) {
                 Judge0CallbackPayload res = results.get(i);
                 TestCase tc = sampleCases.get(i);
                 int statusId = res.getStatus() != null ? res.getStatus().getId() : 0;
                 Verdict verdict = Judge0StatusMapper.toVerdict(statusId);
-
-                if (verdict != Verdict.ACCEPTED && !(tc.getExpectedOutput() == null || tc.getExpectedOutput().isBlank())) {
-                    allPassed = false;
-                }
 
                 if (statusId == 6) { // Compilation Error
                     return CompileResponse.builder()
@@ -234,6 +231,20 @@ public class SubmissionService {
                             .consoleOutput("")
                             .build();
                 }
+
+                if (verdict != Verdict.ACCEPTED && !(tc.getExpectedOutput() == null || tc.getExpectedOutput().isBlank())) {
+                    allPassed = false;
+                }
+
+                CompileResponse.TestCaseResult tcRes = CompileResponse.TestCaseResult.builder()
+                        .stdin(tc.getStdin())
+                        .expectedOutput(tc.getExpectedOutput())
+                        .actualOutput(res.getStdout() != null ? res.getStdout() : "")
+                        .verdict(verdict.name())
+                        .stderr(res.getStderr() != null ? res.getStderr() : "")
+                        .success(verdict == Verdict.ACCEPTED)
+                        .build();
+                tcResults.add(tcRes);
 
                 consoleBuilder.append("Case #").append(i + 1).append(":\n");
                 consoleBuilder.append("Input:\n").append(tc.getStdin()).append("\n");
@@ -261,6 +272,7 @@ public class SubmissionService {
                     .status(finalStatus)
                     .output(outputStr)
                     .consoleOutput(consoleBuilder.toString())
+                    .testCaseResults(tcResults)
                     .build();
 
         } catch (Exception e) {

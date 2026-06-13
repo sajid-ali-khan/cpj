@@ -1,0 +1,41 @@
+<!--
+  File: student-login.component.html
+  Purpose: Markup for the student roll number entry screen.
+-->
+
+<div class="login-container">
+  <div style="margin-bottom: 20px;">
+    <a routerLink="/" style="font-size: 13px;">&larr; Back to Home</a>
+  </div>
+
+  <h2>Student Entry</h2>
+  <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 25px;">
+    Enter your registered roll number to access coding exams.
+  </p>
+
+  @if (errorMessage) {
+    <div class="alert alert-danger">
+      {{ errorMessage }}
+    </div>
+  }
+
+  <form (ngSubmit)="onSubmit()">
+    <div class="form-group">
+      <label for="rollNumber">Roll Number / Registration ID</label>
+      <input
+        type="text"
+        id="rollNumber"
+        name="rollNumber"
+        [(ngModel)]="rollNumber"
+        placeholder="e.g. 22CSE041"
+        required
+        autocomplete="off"
+        style="text-transform: uppercase;"
+      />
+    </div>
+
+    <button type="submit" class="btn btn-success btn-submit" [disabled]="loading">
+      {{ loading ? 'Authenticating...' : 'Verify & Enter Arena' }}
+    </button>
+  </form>
+</div>

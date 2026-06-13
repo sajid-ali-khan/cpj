@@ -1,0 +1,132 @@
+<!--
+  File: contest-arena.component.html
+  Purpose: Markup for the coding arena workspace, splitting description from Monaco editor, showing tabbed run consoles with actual outputs.
+-->
+<div class="container" style="max-width: 100%; height: 100vh; padding: 10px 20px; box-sizing: border-box; overflow: hidden; display: flex; flex-direction: column;">
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+    <div>
+      <a routerLink="/student/dashboard" style="font-size: 13px;">&larr; Back to Dashboard</a>
+      <h2 style="margin: 5px 0 0 0; color: var(--text-bright);">Coding Arena</h2>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      @for (prob of problems; track prob.problemId; let i = $index) {
+        <button (click)="onProblemChange(i)" class="btn" [class.btn-primary]="activeQ === i" style="padding: 4px 10px; font-size: 12px;">Q{{ i + 1 }} ({{ prob.points }} pts)</button>
+      }
+    </div>
+    <button (click)="showSubmitModal = true; submitError = ''" class="btn btn-danger">Submit Entire Exam</button>
+  </div>
+
+  <div class="split-layout">
+    <div class="panel-left">
+      <div class="tabs" style="border-bottom: 1px solid var(--border-color); margin-bottom: 10px; font-size: 13px; display: flex; gap: 8px;">
+        <span (click)="leftTab = 'description'" class="tab" [class.active]="leftTab === 'description'">Description</span>
+        <span (click)="leftTab = 'submissions'; loadSubmissions()" class="tab" [class.active]="leftTab === 'submissions'">Submissions</span>
+      </div>
+      <div style="flex-grow: 1; overflow-y: auto;">
+        @if (leftTab === 'description') {
+          @if (problems[activeQ]) {
+            <div class="card" style="padding: 15px;">
+              <h3 style="color: var(--text-bright); margin: 0 0 8px 0;">{{ problems[activeQ].title }} <span style="font-size: 12px; color: var(--text-muted); font-weight: normal; margin-left: 10px;">({{ problems[activeQ].difficulty }} | {{ problems[activeQ].points }} pts)</span></h3>
+              <div style="white-space: pre-wrap; font-size: 13px; color: var(--text-main); margin-bottom: 20px; line-height: 1.6;">{{ problems[activeQ].description }}</div>
+              @if (problems[activeQ].constraints) { <h4 style="font-size: 13px; color: var(--text-bright); margin: 0 0 2px 0;">Constraints</h4><pre style="background: #161b22; border: 1px solid var(--border-color); padding: 8px; font-size: 12px; border-radius: 4px; overflow-x: auto; margin-bottom: 15px;">{{ problems[activeQ].constraints }}</pre> }
+              @if (problems[activeQ].inputStructure) { <h4 style="font-size: 13px; color: var(--text-bright); margin: 0 0 2px 0;">Input Structure</h4><div style="font-size: 12px; color: var(--text-main); margin-bottom: 12px;">{{ problems[activeQ].inputStructure }}</div> }
+              @if (problems[activeQ].outputStructure) { <h4 style="font-size: 13px; color: var(--text-bright); margin: 0 0 2px 0;">Output Structure</h4><div style="font-size: 12px; color: var(--text-main); margin-bottom: 12px;">{{ problems[activeQ].outputStructure }}</div> }
+            </div>
+          }
+        } @else {
+          <div class="card" style="padding: 15px;">
+            <h3 style="color: var(--text-bright); margin: 0 0 15px 0;">My Submissions</h3>
+            @if (problemSubmissions.length === 0) { <div style="color: var(--text-muted); text-align: center; padding: 20px;">No submissions yet.</div> } @else {
+              <table>
+                <thead><tr><th>Time</th><th>Lang</th><th>Verdict</th><th style="text-align: right;">Action</th></tr></thead>
+                <tbody>
+                  @for (sub of problemSubmissions; track sub.id) {
+                    <tr>
+                      <td style="font-family: monospace; font-size: 12px; color: var(--text-muted);">{{ sub.submittedAt | date:'HH:mm:ss' }}</td>
+                      <td style="font-family: monospace; font-size: 12px;">{{ sub.languageId === 62 ? 'Java' : sub.languageId === 54 ? 'C++' : 'Python' }}</td>
+                      <td [style.color]="sub.verdict === 'ACCEPTED' ? '#56d364' : '#f85149'" style="font-weight: bold; font-size: 12px;">{{ sub.verdict.replace('_', ' ') }}</td>
+                      <td style="text-align: right;"><button (click)="useCode(sub.code, sub.languageId)" class="btn btn-primary" style="padding: 2px 6px; font-size: 11px;">Use Code</button></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 13px; font-weight: bold;">Language:</span>
+          <select [ngModel]="selectedLang" (ngModelChange)="onLangChange($event)" style="width: auto; padding: 3px 10px; font-size: 13px;">
+            <option value="java">Java</option><option value="cpp">C++</option><option value="python">Python</option>
+          </select>
+        </div>
+        <span style="font-size: 11px; color: var(--text-muted);">Saves code instantly</span>
+      </div>
+      <div id="editor-container" class="editor-box" style="flex-grow: 1; border: 1px solid var(--border-color); margin: 10px 0;"></div>
+
+      <div class="console-box" style="height: 250px;">
+        <div style="background-color: #161b22; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 0 10px; height: 35px;">
+          <div class="tabs" style="border: 0; margin: 0; font-size: 12px; display: flex; gap: 8px;">
+            @if (problems[activeQ]?.testCases) {
+              @for (tc of problems[activeQ].testCases; track $index; let i = $index) {
+                <span (click)="selectTab(i)" class="tab" [class.active]="consoleTab === i"
+                  [style.border-bottom-color]="tcVerdicts[i] === 'Accepted' ? '#56d364' : (tcVerdicts[i] ? '#f85149' : (consoleTab === i ? 'var(--color-blue)' : 'transparent'))"
+                  [style.color]="tcVerdicts[i] === 'Accepted' ? '#56d364' : (tcVerdicts[i] ? '#f85149' : (consoleTab === i ? 'var(--text-bright)' : 'var(--text-main)'))">Case {{ i + 1 }}</span>
+              }
+            }
+            <span (click)="selectTab('custom')" class="tab" [class.active]="consoleTab === 'custom'">Custom Input</span>
+          </div>
+          <div style="display: flex; gap: 5px; padding: 4px 0;">
+            <button (click)="runCode()" class="btn" style="font-size: 12px; padding: 4px 10px;" [disabled]="loading || submitting">{{ loading ? 'Running...' : 'Run Code' }}</button>
+            <button (click)="submitCode()" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;" [disabled]="loading || submitting">{{ submitting ? 'Submitting...' : 'Submit Solution' }}</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-grow: 1; overflow: hidden; height: calc(100% - 35px); flex-direction: row;">
+          <div style="width: 45%; border-right: 1px solid var(--border-color); padding: 8px; box-sizing: border-box; display: flex; flex-direction: column; overflow-y: auto;">
+            @if (consoleTab === 'custom') {
+              <span style="font-size: 11px; font-weight: bold; margin-bottom: 2px; color: var(--text-muted); display: block;">Input:</span>
+              <textarea [(ngModel)]="customInput" style="height: 50px; resize: none; background: #0d1117; font-family: monospace; font-size: 11px; border-color: var(--border-color); margin-bottom: 6px;"></textarea>
+              <span style="font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 2px; display: block;">Actual:</span>
+              <pre style="max-height: 50px; background: #0d1117; border: 1px solid var(--border-color); margin: 0; padding: 3px; font-family: monospace; font-size: 11px; overflow-y: auto; color: var(--text-main);">{{ tcOutputs['custom'] || '—' }}</pre>
+            } @else {
+              @if (problems[activeQ]?.testCases?.[consoleTab]) {
+                <span style="font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 2px;">Input:</span>
+                <pre style="background: #0d1117; border: 1px solid var(--border-color); margin: 0 0 6px 0; padding: 3px; font-family: monospace; font-size: 11px; max-height: 40px; overflow-y: auto;">{{ problems[activeQ].testCases[consoleTab].input }}</pre>
+                <span style="font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 2px;">Expected:</span>
+                <pre style="background: #0d1117; border: 1px solid var(--border-color); margin: 0 0 6px 0; padding: 3px; font-family: monospace; font-size: 11px; max-height: 40px; overflow-y: auto;">{{ problems[activeQ].testCases[consoleTab].output }}</pre>
+                <span style="font-size: 11px; font-weight: bold; color: var(--text-muted); margin-bottom: 2px;">Actual:</span>
+                <pre style="background: #0d1117; border: 1px solid var(--border-color); margin: 0; padding: 3px; font-family: monospace; font-size: 11px; max-height: 40px; overflow-y: auto;" [style.color]="tcVerdicts[consoleTab] === 'Accepted' ? '#56d364' : (tcVerdicts[consoleTab] ? '#f85149' : 'var(--text-main)')">{{ tcOutputs[consoleTab] || '—' }}</pre>
+              }
+            }
+          </div>
+          <div style="width: 55%; padding: 8px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;">
+            <span style="font-size: 11px; font-weight: bold; margin-bottom: 4px; color: var(--text-muted);">Console Output / Verdict:</span>
+            <pre style="flex-grow: 1; margin: 0; background: #0d1117; border: 1px solid var(--border-color); font-family: monospace; font-size: 11px; padding: 6px; overflow: auto; white-space: pre-wrap;" [style.color]="consoleTab === 'custom' ? 'var(--text-main)' : (tcVerdicts[consoleTab] === 'Accepted' ? '#56d364' : (tcVerdicts[consoleTab] ? '#f85149' : 'var(--text-main)'))">{{ consoleOutput }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (showSubmitModal) {
+  <div class="modal-overlay">
+    <div class="modal-content" style="width: 450px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: var(--text-bright);">Submit Entire Exam</h3>
+        <button (click)="showSubmitModal = false" class="btn" style="padding: 2px 8px; font-size: 12px;" [disabled]="submittingContest">Close</button>
+      </div>
+      <p style="font-size: 14px; line-height: 1.5; color: var(--text-main); margin-bottom: 20px;">Are you sure you want to submit the entire exam? You will not be able to write code after this.</p>
+      @if (submitError) { <div style="color: #f85149; background-color: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.2); padding: 8px; border-radius: 4px; font-size: 13px; margin-bottom: 15px;">{{ submitError }}</div> }
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button (click)="showSubmitModal = false" class="btn" [disabled]="submittingContest">Cancel</button>
+        <button (click)="confirmSubmit()" class="btn btn-danger" [disabled]="submittingContest">{{ submittingContest ? 'Submitting...' : 'Yes, Submit Exam' }}</button>
+      </div>
+    </div>
+  </div>
+}

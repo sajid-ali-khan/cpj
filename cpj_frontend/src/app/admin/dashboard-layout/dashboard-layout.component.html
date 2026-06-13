@@ -1,0 +1,43 @@
+<!--
+  File: dashboard-layout.component.html
+  Purpose: Markup for the admin layout containing the navigation sidebar and router outlet.
+-->
+
+<div class="admin-container">
+  <!-- Navigation Sidebar -->
+  <div class="sidebar">
+    <div>
+      <h3 style="margin: 0; color: var(--text-bright);">CPJ Console</h3>
+      <span style="font-size: 11px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">
+        Invigilator Session
+      </span>
+      
+      <ul class="nav-list">
+        <li>
+          <a routerLink="/admin/overview">Overview</a>
+        </li>
+        <li>
+          <a routerLink="/admin/contests">Contest Config</a>
+        </li>
+        <li>
+          <a routerLink="/admin/problems">Problem Repository</a>
+        </li>
+        <li>
+          <a routerLink="/admin/students">Student Directory</a>
+        </li>
+      </ul>
+    </div>
+
+    <div>
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; word-break: break-all;">
+        Logged: <strong>{{ adminName }}</strong>
+      </div>
+      <button (click)="logout()" class="btn" style="width: 100%;">Log Out</button>
+    </div>
+  </div>
+
+  <!-- Primary Dashboard Render Area -->
+  <div class="main-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

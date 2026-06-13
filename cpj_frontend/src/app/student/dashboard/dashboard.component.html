@@ -1,0 +1,119 @@
+<!--
+  File: dashboard.component.html
+  Purpose: Markup for the student dashboard. Lists contests with registration logic and displays the leaderboard.
+-->
+
+<div class="container">
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 10px 0; margin-bottom: 30px;">
+    <div>
+      <h3 style="margin: 0; color: var(--text-bright);">{{ name }} ({{ rollNo }})</h3>
+      <span style="font-size: 12px; color: var(--text-muted);">Student Session</span>
+    </div>
+    <button (click)="logout()" class="btn">Log Out</button>
+  </div>
+
+  <h1>Available Coding Contests</h1>
+  
+  @if (contests.length === 0) {
+    <div class="card" style="text-align: center; color: var(--text-muted);">
+      No contests have been scheduled on the server yet.
+    </div>
+  } @else {
+    <div class="card" style="padding: 0; overflow: hidden;">
+      <table>
+        <thead>
+          <tr>
+            <th>Contest Title</th>
+            <th>Start Time</th>
+            <th>Duration</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (contest of contests; track contest.id) {
+            <tr>
+              <td>
+                <strong style="color: var(--text-bright);">{{ contest.name }}</strong>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">{{ contest.description }}</p>
+              </td>
+              <td>{{ contest.startTime | date:'medium' }}</td>
+              <td>{{ contest.durationMins }} mins</td>
+              <td>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  @if (contest.phase === 'FINISHED') {
+                    @if (isRegistered(contest.id)) {
+                      <span style="color: var(--text-muted); font-size: 13px; font-weight: bold;">Ended (Registered)</span>
+                    } @else {
+                      <span style="color: var(--text-muted); font-size: 13px;">Ended (Not Registered)</span>
+                    }
+                    <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
+                  } @else if (contest.phase === 'UPCOMING') {
+                    @if (isRegistered(contest.id)) {
+                      <span style="color: #58a6ff; font-size: 13px; font-weight: bold;">Registered (Upcoming)</span>
+                    } @else {
+                      <button (click)="register(contest.id)" class="btn btn-primary">Register</button>
+                    }
+                  } @else if (contest.phase === 'LIVE') {
+                    @if (!isRegistered(contest.id)) {
+                      <button (click)="register(contest.id)" class="btn btn-primary">Register</button>
+                    } @else {
+                      @if (getRegistrationStatus(contest.id) === 'FINISHED') {
+                        <span style="color: var(--text-muted); font-size: 13px; font-weight: bold; margin-right: 5px;">Submitted</span>
+                      } @else {
+                        <a [routerLink]="['/contest', contest.id]" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;">Enter Arena</a>
+                      }
+                      <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
+                    }
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- Modal: Leaderboard Overlay -->
+@if (showLeaderboard) {
+  <div class="modal-overlay">
+    <div class="modal-content" style="width: 700px; max-height: 85vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: var(--text-bright);">Leaderboard: {{ leaderboardContestName }}</h3>
+        <button (click)="showLeaderboard = false" class="btn" style="padding: 2px 8px; font-size: 12px;">Close</button>
+      </div>
+
+      @if (leaderboardData.length === 0) {
+        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+          No scores logged for this contest yet.
+        </div>
+      } @else {
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 60px;">Rank</th>
+              <th>Student Name</th>
+              <th>Roll Number</th>
+              <th style="text-align: center;">Score</th>
+              <th style="text-align: right;">Last AC Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of leaderboardData; track row.rollNo; let idx = $index) {
+              <tr [style.background-color]="row.rollNo === rollNo ? 'rgba(35, 134, 54, 0.1)' : 'transparent'">
+                <td style="font-weight: bold; font-family: monospace;">#{{ idx + 1 }}</td>
+                <td><strong style="color: var(--text-bright);">{{ row.name }}</strong></td>
+                <td style="font-family: monospace;">{{ row.rollNo }}</td>
+                <td style="text-align: center; font-weight: bold; color: #56d364;">{{ row.score }}</td>
+                <td style="text-align: right; font-family: monospace; font-size: 12px; color: var(--text-muted);">
+                  {{ row.lastAcTime ? (row.lastAcTime | date:'HH:mm:ss') : '—' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+}

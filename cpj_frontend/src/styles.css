@@ -1,0 +1,190 @@
+/*
+ * Global stylesheet for cpj_frontend.
+ * Purpose: Implements a flat, 2014-style dark theme with high contrast and zero gradients.
+ */
+
+:root {
+  --bg-dark: #0d1117;
+  --bg-panel: #161b22;
+  --bg-input: #0d1117;
+  --border-color: #30363d;
+  --text-main: #c9d1d9;
+  --text-bright: #f0f6fc;
+  --text-muted: #8b949e;
+  --color-green: #238636;
+  --color-green-hover: #2ea043;
+  --color-red: #da3633;
+  --color-red-hover: #f85149;
+  --color-blue: #1f6feb;
+  --color-blue-hover: #388bfd;
+  --font-family: Arial, Helvetica, system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--text-bright);
+  font-weight: 600;
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+h1 { font-size: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+
+a {
+  color: #58a6ff;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Common form elements */
+input[type="text"], input[type="password"], textarea, select {
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-bright);
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  box-sizing: border-box;
+  width: 100%;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: #58a6ff;
+  outline: none;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: #21262d;
+  color: var(--text-bright);
+  text-align: center;
+}
+.btn:hover {
+  background-color: #30363d;
+  border-color: #8b949e;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--color-blue);
+  border-color: rgba(240, 246, 252, 0.1);
+}
+.btn-primary:hover {
+  background-color: var(--color-blue-hover);
+}
+
+.btn-success {
+  background-color: var(--color-green);
+  border-color: rgba(240, 246, 252, 0.1);
+}
+.btn-success:hover {
+  background-color: var(--color-green-hover);
+}
+
+.btn-danger {
+  background-color: var(--color-red);
+  border-color: rgba(240, 246, 252, 0.1);
+}
+.btn-danger:hover {
+  background-color: var(--color-red-hover);
+}
+
+/* Layout Utilities */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.card {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+th, td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+}
+th {
+  background-color: #161b22;
+  color: var(--text-bright);
+  font-weight: 600;
+}
+tr:hover {
+  background-color: rgba(240, 246, 252, 0.02);
+}
+
+/* Flat alert */
+.alert {
+  padding: 12px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.alert-info { background-color: rgba(56, 139, 253, 0.1); border-color: rgba(56, 139, 253, 0.2); color: #58a6ff; }
+.alert-success { background-color: rgba(46, 160, 67, 0.1); border-color: rgba(46, 160, 67, 0.2); color: #56d364; }
+.alert-danger { background-color: rgba(248, 81, 73, 0.1); border-color: rgba(248, 81, 73, 0.2); color: #f85149; }
+
+/* Contest Split Workspace Layout Styles */
+.split-layout { display: flex; height: calc(100vh - 120px); gap: 15px; margin-top: 15px; }
+.panel-left { width: 40%; overflow-y: auto; padding-right: 5px; border-right: 1px solid var(--border-color); }
+.panel-right { width: 60%; display: flex; flex-direction: column; }
+.editor-box { flex-grow: 1; border: 1px solid var(--border-color); margin: 10px 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 10px; }
+.tab { padding: 6px 12px; cursor: pointer; border-bottom: 2px solid transparent; font-weight: 600; transition: all 0.15s ease; background-color: transparent; border-top-left-radius: 3px; border-top-right-radius: 3px; }
+.tab:hover { color: var(--text-bright); border-bottom-color: rgba(56, 139, 253, 0.4); background-color: rgba(255, 255, 255, 0.04); }
+.tab.active { border-bottom-color: var(--color-blue); color: var(--text-bright); background-color: var(--bg-dark); }
+
+/* Flat Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-content {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  padding: 20px 25px;
+  width: 420px;
+  border-radius: 4px;
+}
