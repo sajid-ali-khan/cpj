@@ -58,6 +58,81 @@ public class AdminTestCaseService {
         testCaseRepository.deleteById(testCaseId);
     }
 
+    @Transactional
+    public void uploadCSV(Long problemId, org.springframework.web.multipart.MultipartFile file) throws Exception {
+        Problem problem = problemRepository.findById(problemId)
+                .orElseThrow(() -> new NotFoundException("Problem not found: " + problemId));
+
+        String content = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        String[] lines = content.split("\n");
+        System.out.println("uploadCSV: problemId = " + problemId + ", lines = " + lines.length + ", size = " + file.getSize() + " bytes");
+        if (lines.length == 0) return;
+
+        char delim = ',';
+        if (lines[0].contains(";")) delim = ';';
+        else if (lines[0].contains("\t")) delim = '\t';
+        System.out.println("uploadCSV: detected delimiter = '" + delim + "'");
+
+        int startIdx = 0;
+        String firstLine = lines[0].toLowerCase();
+        if (firstLine.contains("input") || firstLine.contains("stdin") || firstLine.contains("output")) {
+            startIdx = 1;
+            System.out.println("uploadCSV: skipping header row: " + lines[0].trim());
+        }
+
+        int savedCount = 0;
+        for (int i = startIdx; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            List<String> parts = parseCSVLine(line, delim);
+            System.out.println("uploadCSV: row " + i + " -> parts size = " + parts.size() + " values: " + parts);
+            if (parts.size() >= 2) {
+                String stdin = parts.get(0).replace("\\n", "\n").trim();
+                String expectedOutput = parts.get(1).replace("\\n", "\n").trim();
+                boolean isSample = false;
+                if (parts.size() >= 3) {
+                    String sampleStr = parts.get(2).toUpperCase();
+                    isSample = sampleStr.equals("TRUE") || sampleStr.equals("1");
+                }
+
+                if (!expectedOutput.isEmpty()) {
+                    TestCase tc = TestCase.builder().problem(problem).stdin(stdin)
+                            .expectedOutput(expectedOutput).isSample(isSample).build();
+                    testCaseRepository.save(tc);
+                    savedCount++;
+                }
+            }
+        }
+        System.out.println("uploadCSV: successfully saved " + savedCount + " test cases");
+    }
+
+    private List<String> parseCSVLine(String line, char delimiter) {
+        List<String> result = new java.util.ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        boolean inQuotes = false;
+        for (int i = 0; i < line.length(); i++) {
+            char c = line.charAt(i);
+            if (c == '"') {
+                inQuotes = !inQuotes;
+            } else if (c == delimiter && !inQuotes) {
+                result.add(current.toString().trim());
+                current.setLength(0);
+            } else {
+                current.append(c);
+            }
+        }
+        result.add(current.toString().trim());
+        for (int i = 0; i < result.size(); i++) {
+            String val = result.get(i);
+            if (val.startsWith("\"") && val.endsWith("\"") && val.length() >= 2) {
+                val = val.substring(1, val.length() - 1);
+            }
+            result.set(i, val.trim());
+        }
+        return result;
+    }
+
     private TestCaseResponse toResponse(TestCase testCase) {
         return TestCaseResponse.builder()
                 .id(testCase.getId())

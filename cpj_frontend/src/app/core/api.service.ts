@@ -18,13 +18,11 @@ export class ApiService {
     this.baseUrl = `http://${host}:8080/api`;
   }
 
-  private getHeaders(): HttpHeaders {
+  private getHeaders(isMultipart = false): HttpHeaders {
     const token = localStorage.getItem('cpj_token');
-    let headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    if (token) {
-      headers = headers.set('X-Roll-No', token);
-    }
-    return headers;
+    let h = new HttpHeaders();
+    if (!isMultipart) h = h.set('Content-Type', 'application/json');
+    return token ? h.set('X-Roll-No', token) : h;
   }
 
   // --- Auth endpoints ---
@@ -117,6 +115,12 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/admin/problems/${problemId}/test-cases`, body, { headers: this.getHeaders() });
   }
 
+  uploadTestCaseCSV(problemId: number, file: File): Observable<any> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.http.post(`${this.baseUrl}/admin/problems/${problemId}/test-cases/csv`, fd, { headers: this.getHeaders(true) });
+  }
+
   getTestCases(problemId: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/problems/${problemId}/test-cases`, { headers: this.getHeaders() });
   }
@@ -135,11 +139,9 @@ export class ApiService {
   createStudent(body: { name: string, rollNo: string, branch: string, role: string }): Observable<any> {
     return this.http.post(`${this.baseUrl}/admin/users`, body, { headers: this.getHeaders() });
   }
-
   updateStudent(id: number, body: { name: string, rollNo: string, branch: string, role: string }): Observable<any> {
     return this.http.put(`${this.baseUrl}/admin/users/${id}`, body, { headers: this.getHeaders() });
   }
-
   deleteStudent(id: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}/admin/users/${id}`, { headers: this.getHeaders() });
   }

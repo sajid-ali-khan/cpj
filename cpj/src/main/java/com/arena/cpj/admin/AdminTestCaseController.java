@@ -19,6 +19,12 @@ public class AdminTestCaseController {
         return adminTestCaseService.create(problemId, request);
     }
 
+    @PostMapping("/api/admin/problems/{problemId}/test-cases/csv")
+    public void uploadCSV(@PathVariable Long problemId,
+                          @RequestParam("file") org.springframework.web.multipart.MultipartFile file) throws Exception {
+        adminTestCaseService.uploadCSV(problemId, file);
+    }
+
     @GetMapping("/api/admin/problems/{problemId}/test-cases")
     public List<TestCaseResponse> list(@PathVariable Long problemId) {
         return adminTestCaseService.list(problemId);

@@ -1,8 +1,3 @@
-<!--
-  File: problems.component.html
-  Purpose: Markup for problem repository and testcase uploads.
--->
-
 <div class="header-section">
   <div><h2>Problem Repository</h2><p class="header-desc">Manage coding challenges and register test cases.</p></div>
   <button (click)="showAddProblem = true" class="btn btn-success">Add Problem</button>
@@ -18,13 +13,8 @@
         @for (prob of problems; track prob.id) {
           <tr>
             <td class="id-val">#{{ prob.id }}</td>
-            <td>
-              <strong class="title-val">{{ prob.title }}</strong>
-              <p class="desc-preview">{{ prob.description }}</p>
-            </td>
-            <td>
-              <span class="difficulty-badge" [style.color]="prob.difficulty === 'HARD' ? '#da3633' : prob.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'">{{ prob.difficulty }}</span>
-            </td>
+            <td><strong class="title-val">{{ prob.title }}</strong><p class="desc-preview">{{ prob.description }}</p></td>
+            <td><span class="difficulty-badge" [style.color]="prob.difficulty === 'HARD' ? '#da3633' : prob.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'">{{ prob.difficulty }}</span></td>
             <td><button (click)="viewTestCases(prob.id, prob.title)" class="btn btn-small">Test Cases</button></td>
           </tr>
         }
@@ -34,95 +24,117 @@
 </div>
 
 @if (showAddProblem) {
-  <div class="modal-overlay">
-    <div class="modal-content modal-problem">
-      <h3>Add Problem</h3>
-      <p class="modal-subtitle">Register a new challenge in the directory.</p>
-
-      <div class="form-group">
-        <label class="form-label">Problem Title *</label>
-        <input type="text" [(ngModel)]="title" placeholder="e.g. Find Longest Palindrome" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Description *</label>
-        <textarea [(ngModel)]="description" placeholder="Problem details..." class="textarea-description"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Constraints</label>
-        <textarea [(ngModel)]="constraints" placeholder="e.g. 1 <= N <= 10^5" class="textarea-constraints"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Difficulty</label>
-        <select [(ngModel)]="difficulty">
-          <option value="EASY">EASY</option><option value="MEDIUM">MEDIUM</option><option value="HARD">HARD</option>
-        </select>
-      </div>
-
-      <div class="form-row">
-        <div class="form-col">
-          <label class="form-label">Input Structure</label>
-          <input type="text" [(ngModel)]="inputStructure" placeholder="e.g. N, followed by N integers" />
-        </div>
-        <div class="form-col">
-          <label class="form-label">Output Structure</label>
-          <input type="text" [(ngModel)]="outputStructure" placeholder="e.g. Return indices" />
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button (click)="showAddProblem = false" class="btn">Cancel</button>
-        <button (click)="saveProblem()" class="btn btn-success" [disabled]="!title || !description">Save Problem</button>
-      </div>
+  <div class="modal-overlay"><div class="modal-content modal-problem">
+    <h3>Add Problem</h3>
+    <p class="modal-subtitle">Register a new challenge in the directory.</p>
+    <div class="form-group"><label class="form-label">Problem Title *</label><input type="text" [(ngModel)]="title" placeholder="e.g. Find Longest Palindrome" /></div>
+    <div class="form-group"><label class="form-label">Description *</label><textarea [(ngModel)]="description" placeholder="Problem details..." class="textarea-description"></textarea></div>
+    <div class="form-group"><label class="form-label">Constraints</label><textarea [(ngModel)]="constraints" placeholder="e.g. 1 <= N <= 10^5" class="textarea-constraints"></textarea></div>
+    <div class="form-group"><label class="form-label">Difficulty</label>
+      <select [(ngModel)]="difficulty"><option value="EASY">EASY</option><option value="MEDIUM">MEDIUM</option><option value="HARD">HARD</option></select>
     </div>
-  </div>
+    <div class="form-row">
+      <div class="form-col"><label class="form-label">Input Structure</label><input type="text" [(ngModel)]="inputStructure" /></div>
+      <div class="form-col"><label class="form-label">Output Structure</label><input type="text" [(ngModel)]="outputStructure" /></div>
+    </div>
+    <div class="form-actions">
+      <button (click)="showAddProblem = false" class="btn">Cancel</button>
+      <button (click)="saveProblem()" class="btn btn-success" [disabled]="!title || !description">Save Problem</button>
+    </div>
+  </div></div>
 }
 
 @if (showTestCases) {
-  <div class="modal-overlay">
-    <div class="modal-content modal-testcases">
-      <div class="modal-header">
-        <h3 class="modal-title">Test Cases: {{ selectedProblemTitle }}</h3>
-        <button (click)="showTestCases = false" class="btn btn-modal-close">Close</button>
+  <div class="modal-overlay"><div class="modal-content modal-testcases">
+    <div class="modal-header">
+      <h3 class="modal-title">Test Cases: {{ selectedProblemTitle }}</h3>
+      <button (click)="showTestCases = false" class="btn btn-modal-close">Close</button>
+    </div>
+
+    <div class="card card-form">
+      <div class="tabs-container">
+        <button (click)="addMode = 'manual'" [class.active]="addMode === 'manual'" class="tab-btn">Paste Text</button>
+        <button (click)="addMode = 'file'" [class.active]="addMode === 'file'" class="tab-btn">Upload Files</button>
+        <button (click)="addMode = 'csv'" [class.active]="addMode === 'csv'" class="tab-btn">Bulk CSV</button>
       </div>
 
-      <div class="card card-form">
-        <h4 class="card-title">Add New Test Case</h4>
+      @if (addMode === 'file') {
+        <div class="file-inputs">
+          <div class="file-box"><label>Input File (.txt/.in)</label><input type="file" (change)="onFileChange($event, 'tcInput')" /></div>
+          <div class="file-box"><label>Output File (.txt/.out)</label><input type="file" (change)="onFileChange($event, 'tcOutput')" /></div>
+        </div>
+      }
+
+      @if (addMode === 'csv') {
+        <div class="csv-input">
+          <label>Upload Test Cases CSV (1st col: stdin, 2nd col: expected output, 3rd col: isSample)</label>
+          <input type="file" accept=".csv" (change)="onCSVFileSelected($event)" />
+          @if (selectedCSVFile) {
+            <div class="selected-file">Selected: {{ selectedCSVFile.name }}</div>
+            <button (click)="uploadCSV()" class="btn btn-success btn-upload-csv">Upload CSV File</button>
+          }
+        </div>
+      }
+
+      @if (addMode !== 'csv') {
         <div class="card-form-row">
-          <div class="form-col">
-            <label class="card-form-label">Stdin Input</label>
-            <textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea>
-          </div>
-          <div class="form-col">
-            <label class="card-form-label">Expected Output</label>
-            <textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea>
-          </div>
+          <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
+          <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
         </div>
         <div class="card-form-actions">
-          <div class="checkbox-container">
-            <input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" />
-            <label for="tcIsSample">Is Sample Test Case (visible to students)</label>
-          </div>
+          <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
           <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
         </div>
-      </div>
-
-      @if (testCases.length === 0) {
-        <div class="empty-testcases">No testcases loaded for this problem. Add one above.</div>
-      } @else {
-        <table>
-          <thead><tr><th class="type-col">Type</th><th>Stdin (Input)</th><th>Expected Output</th><th class="action-col">Action</th></tr></thead>
-          <tbody>
-            @for (tc of testCases; track tc.id) {
-              <tr>
-                <td><span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">{{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}</span></td>
-                <td class="mono-cell">{{ tc.stdin }}</td>
-                <td class="mono-cell">{{ tc.expectedOutput }}</td>
-                <td><button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc">Delete</button></td>
-              </tr>
-            }
-          </tbody>
-        </table>
       }
     </div>
-  </div>
+
+    @if (testCases.length === 0) {
+      <div class="empty-testcases">No testcases loaded for this problem. Add one above.</div>
+    } @else {
+      <table>
+        <thead><tr><th class="type-col">Type</th><th>Stdin (Click to inspect)</th><th>Expected Output (Click to inspect)</th><th class="action-col">Action</th></tr></thead>
+        <tbody>
+          @for (tc of testCases; track tc.id) {
+            <tr>
+              <td><span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">{{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}</span></td>
+              <td class="mono-cell clickable font-mono text-xs" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.stdin) }}</div><div class="size-badge">{{ getSize(tc.stdin) }}</div></td>
+              <td class="mono-cell clickable font-mono text-xs" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.expectedOutput) }}</div><div class="size-badge">{{ getSize(tc.expectedOutput) }}</div></td>
+              <td><button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc">Delete</button></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div></div>
+}
+
+@if (activeInspector) {
+  <div class="modal-overlay"><div class="modal-content modal-inspector">
+    <div class="modal-header">
+      <h3 class="modal-title">Inspector: {{ activeInspector.isSample ? 'SAMPLE TESTCASE' : 'HIDDEN TESTCASE' }}</h3>
+      <button (click)="activeInspector = null" class="btn btn-modal-close">Close</button>
+    </div>
+    <div class="inspector-body">
+      <div class="inspector-section"><label>Stdin ({{ getSize(activeInspector.stdin) }})</label><pre class="inspector-pre">{{ activeInspector.stdin || '—' }}</pre></div>
+      <div class="inspector-section"><label>Expected Output ({{ getSize(activeInspector.expectedOutput) }})</label><pre class="inspector-pre">{{ activeInspector.expectedOutput || '—' }}</pre></div>
+    </div>
+  </div></div>
+}
+@if (alertMsg) {
+  <div class="modal-overlay z-max"><div class="modal-content modal-alert">
+    <h3>Notification</h3>
+    <p class="alert-text">{{ alertMsg }}</p>
+    <button (click)="alertMsg = null" class="btn btn-success">OK</button>
+  </div></div>
+}
+
+@if (confirmConfig) {
+  <div class="modal-overlay z-max"><div class="modal-content modal-confirm">
+    <h3>Are you sure?</h3>
+    <p class="confirm-text">{{ confirmConfig.msg }}</p>
+    <div class="form-actions">
+      <button (click)="confirmConfig = null" class="btn">Cancel</button>
+      <button (click)="confirmConfig.onConfirm(); confirmConfig = null" class="btn btn-danger">Confirm</button>
+    </div>
+  </div></div>
 }
