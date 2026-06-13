@@ -12,12 +12,17 @@ import { ApiService } from '../../core/api.service';
   selector: 'app-admin-contests',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './contests.component.html'
+  templateUrl: './contests.component.html',
+  styleUrl: './contests.component.css'
 })
 export class ContestsComponent implements OnInit {
   contests: any[] = [];
   problems: any[] = [];
   showAddModal = false;
+
+  // Pagination
+  pageSize = 10;
+  currentPage = 1;
 
   // New Contest Form
   title = '';
@@ -34,9 +39,29 @@ export class ContestsComponent implements OnInit {
     this.loadData();
   }
 
+  get paginatedContests(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.contests.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.contests.length / this.pageSize) || 1;
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) this.currentPage--;
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) this.currentPage++;
+  }
+
   loadData(): void {
     this.apiService.getAdminContests().subscribe({
-      next: (data) => this.contests = data
+      next: (data) => {
+        this.contests = data;
+        this.currentPage = 1;
+      }
     });
 
     this.apiService.getAdminProblems().subscribe({

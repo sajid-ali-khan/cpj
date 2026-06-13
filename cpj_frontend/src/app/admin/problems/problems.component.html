@@ -1,55 +1,31 @@
 <!--
   File: problems.component.html
-  Purpose: Markup for problem listing, adding problems, and managing sample or hidden test cases.
+  Purpose: Markup for problem repository and testcase uploads.
 -->
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-  <div>
-    <h2 style="margin: 0;">Problem Repository</h2>
-    <p style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">
-      Manage coding challenges and register test cases.
-    </p>
-  </div>
+<div class="header-section">
+  <div><h2>Problem Repository</h2><p class="header-desc">Manage coding challenges and register test cases.</p></div>
   <button (click)="showAddProblem = true" class="btn btn-success">Add Problem</button>
 </div>
 
-<!-- Problems Directory Table -->
-<div class="card" style="padding: 0; overflow: hidden;">
+<div class="card card-table">
   @if (problems.length === 0) {
-    <div style="padding: 30px; text-align: center; color: var(--text-muted);">
-      No problems available in the repository.
-    </div>
+    <div class="empty-state">No problems available in the repository.</div>
   } @else {
     <table>
-      <thead>
-        <tr>
-          <th style="width: 80px;">ID</th>
-          <th>Problem Title</th>
-          <th>Difficulty</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
+      <thead><tr><th class="id-col">ID</th><th>Problem Title</th><th>Difficulty</th><th>Actions</th></tr></thead>
       <tbody>
         @for (prob of problems; track prob.id) {
           <tr>
-            <td style="font-family: monospace; font-weight: bold;">#{{ prob.id }}</td>
+            <td class="id-val">#{{ prob.id }}</td>
             <td>
-              <strong style="color: var(--text-bright);">{{ prob.title }}</strong>
-              <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted); max-width: 600px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                {{ prob.description }}
-              </p>
+              <strong class="title-val">{{ prob.title }}</strong>
+              <p class="desc-preview">{{ prob.description }}</p>
             </td>
             <td>
-              <span style="font-weight: bold; font-size: 12px;"
-                [style.color]="prob.difficulty === 'HARD' ? '#da3633' : prob.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'">
-                {{ prob.difficulty }}
-              </span>
+              <span class="difficulty-badge" [style.color]="prob.difficulty === 'HARD' ? '#da3633' : prob.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'">{{ prob.difficulty }}</span>
             </td>
-            <td>
-              <button (click)="viewTestCases(prob.id, prob.title)" class="btn" style="font-size: 12px; padding: 3px 8px;">
-                Test Cases
-              </button>
-            </td>
+            <td><button (click)="viewTestCases(prob.id, prob.title)" class="btn btn-small">Test Cases</button></td>
           </tr>
         }
       </tbody>
@@ -57,49 +33,43 @@
   }
 </div>
 
-<!-- Modal: Add Problem -->
 @if (showAddProblem) {
   <div class="modal-overlay">
-    <div class="modal-content" style="width: 520px; max-height: 90vh; overflow-y: auto;">
+    <div class="modal-content modal-problem">
       <h3>Add Problem</h3>
-      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Register a new challenge in the directory.</p>
+      <p class="modal-subtitle">Register a new challenge in the directory.</p>
 
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Problem Title *</label>
+      <div class="form-group">
+        <label class="form-label">Problem Title *</label>
         <input type="text" [(ngModel)]="title" placeholder="e.g. Find Longest Palindrome" />
       </div>
-
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Description *</label>
-        <textarea [(ngModel)]="description" placeholder="Problem details..." style="height: 60px; resize: none;"></textarea>
+      <div class="form-group">
+        <label class="form-label">Description *</label>
+        <textarea [(ngModel)]="description" placeholder="Problem details..." class="textarea-description"></textarea>
       </div>
-
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Constraints</label>
-        <textarea [(ngModel)]="constraints" placeholder="e.g. 1 <= N <= 10^5" style="height: 40px; resize: none;"></textarea>
+      <div class="form-group">
+        <label class="form-label">Constraints</label>
+        <textarea [(ngModel)]="constraints" placeholder="e.g. 1 <= N <= 10^5" class="textarea-constraints"></textarea>
       </div>
-
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Difficulty</label>
+      <div class="form-group">
+        <label class="form-label">Difficulty</label>
         <select [(ngModel)]="difficulty">
-          <option value="EASY">EASY</option>
-          <option value="MEDIUM">MEDIUM</option>
-          <option value="HARD">HARD</option>
+          <option value="EASY">EASY</option><option value="MEDIUM">MEDIUM</option><option value="HARD">HARD</option>
         </select>
       </div>
 
-      <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-        <div style="flex: 1;">
-          <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Input Structure</label>
+      <div class="form-row">
+        <div class="form-col">
+          <label class="form-label">Input Structure</label>
           <input type="text" [(ngModel)]="inputStructure" placeholder="e.g. N, followed by N integers" />
         </div>
-        <div style="flex: 1;">
-          <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Output Structure</label>
+        <div class="form-col">
+          <label class="form-label">Output Structure</label>
           <input type="text" [(ngModel)]="outputStructure" placeholder="e.g. Return indices" />
         </div>
       </div>
 
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <div class="form-actions">
         <button (click)="showAddProblem = false" class="btn">Cancel</button>
         <button (click)="saveProblem()" class="btn btn-success" [disabled]="!title || !description">Save Problem</button>
       </div>
@@ -107,69 +77,47 @@
   </div>
 }
 
-<!-- Modal: Test Cases Management -->
 @if (showTestCases) {
   <div class="modal-overlay">
-    <div class="modal-content" style="width: 700px; max-height: 85vh; overflow-y: auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
-        <h3 style="margin: 0; color: var(--text-bright);">Test Cases: {{ selectedProblemTitle }}</h3>
-        <button (click)="showTestCases = false" class="btn" style="padding: 2px 8px; font-size: 12px;">Close</button>
+    <div class="modal-content modal-testcases">
+      <div class="modal-header">
+        <h3 class="modal-title">Test Cases: {{ selectedProblemTitle }}</h3>
+        <button (click)="showTestCases = false" class="btn btn-modal-close">Close</button>
       </div>
 
-      <!-- Add Test Case Inline Form -->
-      <div class="card" style="padding: 12px; margin-bottom: 20px;">
-        <h4 style="margin-top: 0; font-size: 13px; color: var(--text-bright); margin-bottom: 10px;">Add New Test Case</h4>
-        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-          <div style="flex: 1;">
-            <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 4px;">Stdin Input</label>
-            <textarea [(ngModel)]="tcInput" placeholder="Stdin..." style="height: 50px; font-family: monospace; font-size: 12px; resize: none;"></textarea>
+      <div class="card card-form">
+        <h4 class="card-title">Add New Test Case</h4>
+        <div class="card-form-row">
+          <div class="form-col">
+            <label class="card-form-label">Stdin Input</label>
+            <textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea>
           </div>
-          <div style="flex: 1;">
-            <label style="font-size: 11px; font-weight: bold; display: block; margin-bottom: 4px;">Expected Output</label>
-            <textarea [(ngModel)]="tcOutput" placeholder="Expected output..." style="height: 50px; font-family: monospace; font-size: 12px; resize: none;"></textarea>
+          <div class="form-col">
+            <label class="card-form-label">Expected Output</label>
+            <textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea>
           </div>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-            <input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" style="cursor: pointer;" />
-            <label for="tcIsSample" style="font-size: 12px; cursor: pointer; color: var(--text-main);">Is Sample Test Case (visible to students)</label>
+        <div class="card-form-actions">
+          <div class="checkbox-container">
+            <input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" />
+            <label for="tcIsSample">Is Sample Test Case (visible to students)</label>
           </div>
-          <button (click)="addTestCase()" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;" [disabled]="!tcOutput">
-            Add Testcase
-          </button>
+          <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
         </div>
       </div>
 
-      <!-- Test Cases Listing Table -->
       @if (testCases.length === 0) {
-        <div style="text-align: center; padding: 20px; color: var(--text-muted);">
-          No testcases loaded for this problem. Add one above.
-        </div>
+        <div class="empty-testcases">No testcases loaded for this problem. Add one above.</div>
       } @else {
         <table>
-          <thead>
-            <tr>
-              <th style="width: 100px;">Type</th>
-              <th>Stdin (Input)</th>
-              <th>Expected Output</th>
-              <th style="width: 80px;">Action</th>
-            </tr>
-          </thead>
+          <thead><tr><th class="type-col">Type</th><th>Stdin (Input)</th><th>Expected Output</th><th class="action-col">Action</th></tr></thead>
           <tbody>
             @for (tc of testCases; track tc.id) {
               <tr>
-                <td>
-                  <span style="font-weight: bold; font-size: 11px;" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">
-                    {{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}
-                  </span>
-                </td>
-                <td style="font-family: monospace; font-size: 12px; word-break: break-all;">{{ tc.stdin }}</td>
-                <td style="font-family: monospace; font-size: 12px; word-break: break-all;">{{ tc.expectedOutput }}</td>
-                <td>
-                  <button (click)="deleteTestCase(tc.id)" class="btn btn-danger" style="font-size: 11px; padding: 2px 6px;">
-                    Delete
-                  </button>
-                </td>
+                <td><span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">{{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}</span></td>
+                <td class="mono-cell">{{ tc.stdin }}</td>
+                <td class="mono-cell">{{ tc.expectedOutput }}</td>
+                <td><button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc">Delete</button></td>
               </tr>
             }
           </tbody>

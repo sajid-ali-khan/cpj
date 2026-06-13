@@ -4,18 +4,19 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterLink, RouterOutlet],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './dashboard-layout.component.html',
   styles: [`
     .admin-container {
       display: flex;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
     .sidebar {
       width: 220px;
@@ -53,6 +54,12 @@ import { AuthService } from '../../core/auth.service';
       background-color: #21262d;
       color: var(--text-bright);
       text-decoration: none;
+    }
+    .nav-list a.active {
+      background-color: #21262d;
+      color: var(--text-bright);
+      border-left: 3px solid var(--color-blue, #58a6ff);
+      border-radius: 0 4px 4px 0;
     }
   `]
 })

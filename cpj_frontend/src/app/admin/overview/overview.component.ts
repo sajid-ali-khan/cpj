@@ -11,7 +11,8 @@ import { ApiService } from '../../core/api.service';
   selector: 'app-admin-overview',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './overview.component.html'
+  templateUrl: './overview.component.html',
+  styleUrl: './overview.component.css'
 })
 export class OverviewComponent implements OnInit {
   contestsCount = 0;
@@ -19,6 +20,10 @@ export class OverviewComponent implements OnInit {
   problemsCount = 0;
   contests: any[] = [];
   loading = false;
+
+  // Pagination
+  pageSize = 5;
+  currentPage = 1;
 
   // Leaderboard Modal State
   showLeaderboard = false;
@@ -31,6 +36,23 @@ export class OverviewComponent implements OnInit {
     this.loadData();
   }
 
+  get paginatedContests(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.contests.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.contests.length / this.pageSize) || 1;
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) this.currentPage--;
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) this.currentPage++;
+  }
+
   loadData(): void {
     this.loading = true;
     
@@ -38,6 +60,7 @@ export class OverviewComponent implements OnInit {
       next: (data) => {
         this.contests = data;
         this.contestsCount = data.length;
+        this.currentPage = 1;
         this.loading = false;
       },
       error: () => { this.loading = false; }

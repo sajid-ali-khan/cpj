@@ -92,4 +92,12 @@ public class AdminUserService {
 
         return toResponse(userRepository.save(user));
     }
+
+    @Transactional
+    public void delete(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new com.arena.cpj.common.NotFoundException("User not found with ID: " + id);
+        }
+        userRepository.deleteById(id);
+    }
 }

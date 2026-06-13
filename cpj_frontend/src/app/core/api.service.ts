@@ -139,4 +139,8 @@ export class ApiService {
   updateStudent(id: number, body: { name: string, rollNo: string, branch: string, role: string }): Observable<any> {
     return this.http.put(`${this.baseUrl}/admin/users/${id}`, body, { headers: this.getHeaders() });
   }
+
+  deleteStudent(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/admin/users/${id}`, { headers: this.getHeaders() });
+  }
 }

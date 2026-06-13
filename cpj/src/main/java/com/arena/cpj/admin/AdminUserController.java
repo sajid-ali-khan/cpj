@@ -30,4 +30,9 @@ public class AdminUserController {
     public UserResponse update(@PathVariable Long id, @RequestBody CreateUserRequest request) {
         return adminUserService.update(id, request);
     }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        adminUserService.delete(id);
+    }
 }

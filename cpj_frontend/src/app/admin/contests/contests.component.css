@@ -1,0 +1,45 @@
+/*
+ * File: contests.component.css
+ * Purpose: Styles and layout for the invigilator contest manager.
+ */
+
+.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.header-section h2 { margin: 0; }
+.header-desc { color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0; }
+
+.table-card { padding: 0; overflow: hidden; }
+.empty-table { padding: 30px; text-align: center; color: var(--text-muted); }
+.status-badge { font-weight: bold; font-size: 12px; }
+
+/* -- Pagination Controls -- */
+.pagination-controls { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-top: 1px solid var(--border-color); background-color: #161b22; }
+.pagination-info { font-size: 13px; color: var(--text-muted); }
+.pagination-btns { display: flex; gap: 8px; }
+.btn-small { font-size: 12px; padding: 3px 8px; }
+
+/* -- Create Contest Modal -- */
+.modal-contest { width: 540px; max-height: 90vh; overflow-y: auto; }
+.modal-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+.form-group { margin-bottom: 12px; }
+.form-label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
+.form-textarea { height: 50px; resize: none; }
+.form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+.form-col-flex { flex: 1; }
+.form-col-fixed { width: 120px; }
+
+.problems-checklist { border: 1px solid var(--border-color); background-color: #0d1117; max-height: 120px; overflow-y: auto; padding: 8px; border-radius: 4px; }
+.problems-empty { font-size: 12px; color: var(--text-muted); }
+.problem-item { display: flex; align-items: center; margin-bottom: 6px; }
+.problem-checkbox { margin-right: 8px; cursor: pointer; }
+.problem-label { font-size: 13px; cursor: pointer; color: var(--text-main); }
+
+.config-section { margin-bottom: 25px; border-top: 1px solid var(--border-color); padding-top: 15px; }
+.config-title { font-size: 12px; font-weight: bold; display: block; margin-bottom: 10px; color: var(--text-bright); }
+.config-list { display: flex; flex-direction: column; gap: 8px; }
+.config-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+.config-item-name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.config-item-fields { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+.field-order { width: 55px; padding: 2px 6px; font-size: 12px; }
+.field-points { width: 70px; padding: 2px 6px; font-size: 12px; }
+
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }

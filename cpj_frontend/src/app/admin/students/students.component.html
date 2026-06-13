@@ -3,36 +3,24 @@
   Purpose: Markup for student directory, listing registered users and providing manual/CSV entry forms.
 -->
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+<div class="header-section">
   <div>
-    <h2 style="margin: 0;">Student Directory</h2>
-    <p style="color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0;">
-      Browse and manage student profiles eligible for exams.
-    </p>
+    <h2 class="header-title">Student Directory</h2>
+    <p class="header-desc">Browse and manage student profiles eligible for exams.</p>
   </div>
-  <div style="display: flex; gap: 10px;">
+  <div class="header-btns">
     <button (click)="showAddModal = true" class="btn">Add Student</button>
     <button (click)="showImportModal = true" class="btn btn-success">Import CSV</button>
   </div>
 </div>
 
-<!-- Search Input -->
-<div class="card" style="padding: 10px; margin-bottom: 20px;">
-  <input
-    type="text"
-    [(ngModel)]="searchQuery"
-    (ngModelChange)="filter()"
-    placeholder="Search by student name or roll number..."
-    style="width: 100%;"
-  />
+<div class="card search-card">
+  <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="filter()" placeholder="Search by student name or roll number..." class="search-input" />
 </div>
 
-<!-- Directory Table -->
-<div class="card" style="padding: 0; overflow: hidden;">
+<div class="card table-card">
   @if (filteredStudents.length === 0) {
-    <div style="padding: 30px; text-align: center; color: var(--text-muted);">
-      No student profiles match the filter.
-    </div>
+    <div class="empty-table">No student profiles match the filter.</div>
   } @else {
     <table>
       <thead>
@@ -40,6 +28,7 @@
           <th>Student Name</th>
           <th>Roll Number</th>
           <th>Branch</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -48,6 +37,12 @@
             <td><strong style="color: var(--text-bright);">{{ student.name }}</strong></td>
             <td style="font-family: monospace;">{{ student.rollNumber }}</td>
             <td>{{ student.branch }}</td>
+            <td>
+              <div class="actions-cell">
+                <button (click)="openEditModal(student)" class="btn btn-small">Edit</button>
+                <button (click)="deleteStudent(student.id)" class="btn btn-danger btn-small">Delete</button>
+              </div>
+            </td>
           </tr>
         }
       </tbody>
@@ -55,29 +50,26 @@
   }
 </div>
 
-<!-- Modal: Add Student -->
 @if (showAddModal) {
   <div class="modal-overlay">
     <div class="modal-content">
       <h3>Add Student</h3>
-      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 20px;">Create a new student profile on the server.</p>
+      <p class="modal-subtitle">Create a new student profile on the server.</p>
       
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Full Name</label>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
         <input type="text" [(ngModel)]="newName" placeholder="e.g. John Doe" />
       </div>
-      
-      <div style="margin-bottom: 12px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Roll Number</label>
-        <input type="text" [(ngModel)]="newRoll" placeholder="e.g. 22CSE041" style="text-transform: uppercase;" />
+      <div class="form-group">
+        <label class="form-label">Roll Number</label>
+        <input type="text" [(ngModel)]="newRoll" placeholder="e.g. 22CSE041" class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branch</label>
+        <input type="text" [(ngModel)]="newBranch" placeholder="e.g. CSE" class="form-input" />
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px;">Branch</label>
-        <input type="text" [(ngModel)]="newBranch" placeholder="e.g. CSE" style="text-transform: uppercase;" />
-      </div>
-
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <div class="modal-actions">
         <button (click)="showAddModal = false" class="btn">Cancel</button>
         <button (click)="addStudent()" class="btn btn-success" [disabled]="!newName || !newRoll">Add User</button>
       </div>
@@ -85,26 +77,52 @@
   </div>
 }
 
-<!-- Modal: Import CSV -->
+@if (showEditModal) {
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <h3>Edit Student</h3>
+      <p class="modal-subtitle">Modify student profile details (Roll Number cannot be edited).</p>
+      
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" [(ngModel)]="editName" placeholder="e.g. John Doe" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Roll Number (Read-only)</label>
+        <input type="text" [ngModel]="editRoll" readonly disabled class="form-input" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branch</label>
+        <input type="text" [(ngModel)]="editBranch" placeholder="e.g. CSE" class="form-input" />
+      </div>
+
+      <div class="modal-actions">
+        <button (click)="showEditModal = false" class="btn">Cancel</button>
+        <button (click)="saveEdit()" class="btn btn-success" [disabled]="!editName || !editBranch">Save Changes</button>
+      </div>
+    </div>
+  </div>
+}
+
 @if (showImportModal) {
   <div class="modal-overlay">
-    <div class="modal-content" style="width: 460px;">
+    <div class="modal-content modal-import">
       <h3>Import Student Directory from CSV</h3>
-      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px;">
+      <p class="modal-subtitle">
         Select a comma-separated file (.csv). Format: <code style="background-color: #161b22; padding: 2px 4px;">name,rollNumber,branch</code>.
       </p>
 
-      <div style="margin-bottom: 20px; border: 1px dashed var(--border-color); padding: 15px; text-align: center; background-color: #0d1117;">
-        <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importing" style="font-size: 13px;" />
+      <div class="csv-upload-box">
+        <input type="file" (change)="onFileSelected($event)" accept=".csv" [disabled]="importing" class="csv-input" />
       </div>
 
       @if (importProgress) {
-        <div class="alert alert-info" style="font-family: monospace; font-size: 12px; padding: 8px 12px; margin-bottom: 20px;">
+        <div class="alert alert-info import-progress-box">
           {{ importProgress }}
         </div>
       }
 
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <div class="modal-actions">
         <button (click)="showImportModal = false" class="btn" [disabled]="importing">Close</button>
         <button (click)="runImport()" class="btn btn-success" [disabled]="importing || !importProgress.includes('Ready')">
           {{ importing ? 'Importing...' : 'Start Import' }}

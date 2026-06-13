@@ -1,0 +1,49 @@
+/*
+ * File: problems.component.css
+ * Purpose: Layout and styles for the invigilator problem repository.
+ */
+
+.header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.header-section h2 { margin: 0; }
+.header-desc { color: var(--text-muted); font-size: 13px; margin: 5px 0 0 0; }
+.card-table { padding: 0; overflow: hidden; }
+.empty-state { padding: 30px; text-align: center; color: var(--text-muted); }
+.id-col { width: 80px; }
+.id-val { font-family: monospace; font-weight: bold; }
+.title-val { color: var(--text-bright); }
+.desc-preview { margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted); max-width: 600px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.difficulty-badge { font-weight: bold; font-size: 12px; }
+.btn-small { font-size: 12px; padding: 3px 8px; }
+
+/* -- Modals & Forms -- */
+.modal-problem { width: 520px; max-height: 90vh; overflow-y: auto; }
+.modal-subtitle { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
+.form-group { margin-bottom: 12px; }
+.form-label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
+.textarea-description { height: 60px; resize: none; }
+.textarea-constraints { height: 40px; resize: none; }
+.form-row { display: flex; gap: 15px; margin-bottom: 20px; }
+.form-col { flex: 1; }
+.form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* -- Test Case Management -- */
+.modal-testcases { width: 700px; max-height: 85vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px; }
+.modal-title { margin: 0; color: var(--text-bright); }
+.btn-modal-close { padding: 2px 8px; font-size: 12px; }
+.card-form { padding: 12px; margin-bottom: 20px; }
+.card-title { margin-top: 0; font-size: 13px; color: var(--text-bright); margin-bottom: 10px; }
+.card-form-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.card-form-label { font-size: 11px; font-weight: bold; display: block; margin-bottom: 4px; }
+.card-form-textarea { height: 50px; font-family: monospace; font-size: 12px; resize: none; }
+.card-form-actions { display: flex; justify-content: space-between; align-items: center; }
+.checkbox-container { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.checkbox-container input { cursor: pointer; }
+.checkbox-container label { font-size: 12px; cursor: pointer; color: var(--text-main); }
+.btn-add-tc { font-size: 12px; padding: 4px 10px; }
+.empty-testcases { text-align: center; padding: 20px; color: var(--text-muted); }
+.type-col { width: 100px; }
+.action-col { width: 80px; }
+.type-badge { font-weight: bold; font-size: 11px; }
+.mono-cell { font-family: monospace; font-size: 12px; word-break: break-all; }
+.btn-delete-tc { font-size: 11px; padding: 2px 6px; }

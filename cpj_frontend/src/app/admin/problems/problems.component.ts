@@ -12,7 +12,8 @@ import { ApiService } from '../../core/api.service';
   selector: 'app-admin-problems',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './problems.component.html'
+  templateUrl: './problems.component.html',
+  styleUrl: './problems.component.css'
 })
 export class ProblemsComponent implements OnInit {
   problems: any[] = [];
