@@ -19,7 +19,6 @@ public class EmailService {
         log.info("Sending OTP email to: {}", toEmail);
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("alikhan8019340863@gmail.com");
             message.setTo(toEmail);
             message.setSubject("Your CPJ Contest Login OTP");
             message.setText("Hello Student,\n\n" +
