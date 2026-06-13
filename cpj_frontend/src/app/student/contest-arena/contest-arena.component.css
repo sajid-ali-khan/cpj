@@ -1,10 +1,60 @@
 /*
  * File: contest-arena.component.css
- * Purpose: Adjust layout heights to eliminate empty space at the bottom of the screen and increase editor height.
+ * Purpose: Layout for the coding arena — normal split view and editor-expanded full-width state.
  */
+
+/* ── Base split layout ──────────────────────────────────────────────────── */
 .split-layout {
-  flex-grow: 1 !important;
+  flex: 1 1 0% !important;
   min-height: 0 !important;
-  height: auto !important;
+  height: 0 !important;
   margin-bottom: 0 !important;
+}
+
+/* ── Ensure panels fit their parent container and allow inner items to shrink ── */
+.panel-left,
+.panel-right {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+/* ── Expanded state: remove gap since left panel is gone ─────────────────── */
+.split-layout.editor-expanded {
+  gap: 0 !important;
+}
+
+/* ── Editor box: flex-basis:0 so it always fills exactly the remaining space ─ */
+.editor-box {
+  flex: 1 1 0 !important;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Right panel takes full width when expanded ──────────────────────────── */
+.panel-full {
+  width: 100% !important;
+}
+
+/* ── Console panel ──────────────────────────────────────────────────────── */
+.console-box {
+  display: flex;
+  flex-direction: column;
+  height: 250px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ── Expand/collapse icon button ────────────────────────────────────────── */
+.editor-expand-btn {
+  padding: 3px 6px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.editor-expand-btn:hover {
+  opacity: 1;
 }

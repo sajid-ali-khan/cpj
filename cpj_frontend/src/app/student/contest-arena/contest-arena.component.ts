@@ -18,6 +18,7 @@ export class ContestArenaComponent implements OnInit, AfterViewInit {
   customInput = ''; consoleOutput = ''; loading = false; submitting = false; tcOutputs: Record<string, string> = {};
   tcVerdicts: Record<string, string> = {}; showSubmitModal = false; submitError = ''; submittingContest = false;
   submissions: any[] = []; leftTab: 'description' | 'submissions' = 'description';
+  isEditorExpanded = false;
   private editor: any; private runResult: any = null;
 
   constructor(private route: ActivatedRoute, private router: Router, private apiService: ApiService, private authService: AuthService) {}
@@ -68,6 +69,29 @@ export class ContestArenaComponent implements OnInit, AfterViewInit {
   }
 
   onLangChange(lang: string): void { this.selectedLang = lang; this.loadSavedCode(); this.updateRoute(); }
+
+  toggleEditorExpand(): void {
+    this.isEditorExpanded = !this.isEditorExpanded;
+    setTimeout(() => this.editor?.layout(), 50);
+    setTimeout(() => this.editor?.layout(), 150);
+    setTimeout(() => this.editor?.layout(), 300);
+  }
+
+  /** Collapse to normal view, then run code */
+  runAndCollapse(): void {
+    this.isEditorExpanded = false;
+    setTimeout(() => { this.editor?.layout(); this.runCode(); }, 50);
+    setTimeout(() => this.editor?.layout(), 150);
+    setTimeout(() => this.editor?.layout(), 300);
+  }
+
+  /** Collapse to normal view, then submit code */
+  submitAndCollapse(): void {
+    this.isEditorExpanded = false;
+    setTimeout(() => { this.editor?.layout(); this.submitCode(); }, 50);
+    setTimeout(() => this.editor?.layout(), 150);
+    setTimeout(() => this.editor?.layout(), 300);
+  }
   selectTab(tab: number | 'custom'): void { this.consoleTab = tab; this.updateConsoleOutput(); }
   updateRoute(): void { this.router.navigate([], { relativeTo: this.route, queryParams: { problem: this.activeQ, lang: this.selectedLang }, queryParamsHandling: 'merge' }); }
   loadSubmissions(): void { this.apiService.getSubmissions(this.contestId).subscribe({ next: (d) => this.submissions = d }); }
