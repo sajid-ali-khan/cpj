@@ -3,15 +3,17 @@
  * Purpose: Manage state and business logic for the Student Coding Arena.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { AuthService } from '../../core/auth.service';
 import { getVerdictLabel } from './contest-arena.helper';
 
 @Injectable()
-export class ContestArenaStateService {
+export class ContestArenaStateService implements OnDestroy {
   contestId = 0;
   problems: any[] = [];
+  pendingSubmissionId: number | null = null;
+  private sseSource: EventSource | null = null;
   activeQ = 0;
   selectedLang = 'java';
   consoleTab: number | 'custom' = 0;
@@ -32,6 +34,8 @@ export class ContestArenaStateService {
   get rollNo(): string { return this.authService.rollNumber() || ''; }
 
   loadProblems(contestId: number, success: () => void, error: () => void): void {
+    this.contestId = contestId;
+    this.connectSse();
     this.apiService.getContestProblems(contestId).subscribe({
       next: (d) => {
         this.problems = d;
@@ -122,15 +126,70 @@ export class ContestArenaStateService {
       code
     }).subscribe({
       next: (r) => {
-        this.submitting = false;
-        this.consoleOutput = `Verdict: ${r.verdict}\nPassed: ${r.passed}/${r.total}`;
-        this.loadSubmissions(contestId);
+        this.pendingSubmissionId = r.submissionId;
+        console.log('Submission created, waiting for SSE verdict. ID:', r.submissionId);
       },
       error: (e) => {
         this.submitting = false;
         this.consoleOutput = e.error?.error || 'Failed';
       }
     });
+  }
+
+  connectSse(): void {
+    if (this.sseSource) {
+      this.sseSource.close();
+      this.sseSource = null;
+    }
+
+    const token = localStorage.getItem('cpj_token');
+    if (!token) return;
+
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    this.sseSource = new EventSource(`http://${host}:8080/api/events?rollNo=${encodeURIComponent(token)}`);
+
+    this.sseSource.addEventListener('verdict', (event: any) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.submissionId === this.pendingSubmissionId) {
+          this.submitting = false;
+          this.pendingSubmissionId = null;
+          const vLabel = getVerdictLabel(data.verdict);
+          this.consoleOutput = `Verdict: ${vLabel}\nTime: ${data.timeMs != null ? data.timeMs + 'ms' : '—'}\nMemory: ${data.memoryKb != null ? data.memoryKb + ' KB' : '—'}`;
+          this.loadSubmissions(this.contestId);
+          this.loadLeaderboard(this.contestId);
+        }
+      } catch (err) {
+        console.error('Error parsing verdict SSE:', err);
+      }
+    });
+
+    this.sseSource.addEventListener('leaderboard', (event: any) => {
+      try {
+        const data = JSON.parse(event.data);
+        this.leaderboard = data;
+      } catch (err) {
+        console.error('Error parsing leaderboard SSE:', err);
+      }
+    });
+
+    this.sseSource.onerror = (err) => {
+      console.error('SSE connection error, closing...', err);
+      this.sseSource?.close();
+      this.sseSource = null;
+      setTimeout(() => {
+        if (this.contestId) {
+          this.connectSse();
+        }
+      }, 5000);
+    };
+  }
+
+  ngOnDestroy(): void {
+    if (this.sseSource) {
+      this.sseSource.close();
+      this.sseSource = null;
+    }
   }
 
   confirmSubmit(contestId: number, success: () => void): void {

@@ -15,8 +15,8 @@ public class SubmissionController {
     private final SubmissionService submissionService;
 
     @PostMapping("/submit")
-    public StudentSubmitResponse submit(@RequestBody SubmitRequest request) {
-        return submissionService.submitSynchronous(request);
+    public SubmitResponse submit(@RequestBody SubmitRequest request) {
+        return submissionService.submitAsync(request);
     }
 
     @PostMapping("/compile")

@@ -75,20 +75,25 @@ public class Judge0Client {
 
             List<Judge0CallbackPayload> results = getBatch(tokenParam);
 
-            boolean allDone = results.stream().allMatch(r -> {
+            boolean allDone = true;
+            long pending = 0;
+
+            for (Judge0CallbackPayload r : results) {
                 int id = r.getStatus() != null ? r.getStatus().getId() : 0;
-                return id != STATUS_IN_QUEUE && id != STATUS_PROCESSING;
-            });
+                
+                boolean stillRunning = id == STATUS_IN_QUEUE || id == STATUS_PROCESSING;
+
+                if (stillRunning) {
+                    pending++;
+                    allDone = false;
+                }
+            }
 
             if (allDone) {
                 log.info("Batch resolved after {} poll(s). Results: {}", attempt + 1, results);
                 return results;
             }
-
-            long pending = results.stream().filter(r -> {
-                int id = r.getStatus() != null ? r.getStatus().getId() : 0;
-                return id == STATUS_IN_QUEUE || id == STATUS_PROCESSING;
-            }).count();
+            
             log.info("Batch poll {}/{}: {}/{} token(s) still pending",
                     attempt + 1, MAX_POLLS, pending, tokens.size());
         }

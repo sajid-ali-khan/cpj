@@ -69,6 +69,13 @@ public class SubmissionService {
                     return new NotFoundException("Contest not found: " + contestId);
                 });
         
+        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
+                .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
+        if (entry.getStatus() == ParticipantStatus.FINISHED) {
+            log.warn("Contest validation failed: User ID {} has already submitted Contest ID {}", user.getId(), contestId);
+            throw new ForbiddenException("You have already submitted this contest");
+        }
+        
         // Guard 1: Check contest phase is LIVE
         if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
             log.warn("Contest validation failed: Contest ID {} phase is not LIVE", contestId);
@@ -120,6 +127,16 @@ public class SubmissionService {
         }
         log.info("=== Submission Flow Completed (ID: {}) ===", submission.getId());
         return SubmitResponse.builder().submissionId(submission.getId()).build();
+    }
+
+    @Transactional
+    public SubmitResponse submitAsync(SubmitRequest request) {
+        User user = com.arena.cpj.auth.UserContext.get();
+        if (user == null) {
+            throw new com.arena.cpj.auth.UnauthorizedException("Session invalid or expired. Please log in again.");
+        }
+        int languageId = getLanguageId(request.getLanguage());
+        return submit(user, request.getContestId(), request.getQuestionId(), request.getCode(), languageId);
     }
 
     @Transactional(readOnly = true)
