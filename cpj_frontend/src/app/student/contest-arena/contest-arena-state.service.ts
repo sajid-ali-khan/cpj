@@ -155,7 +155,7 @@ export class ContestArenaStateService implements OnDestroy {
           this.submitting = false;
           this.pendingSubmissionId = null;
           const vLabel = getVerdictLabel(data.verdict);
-          this.consoleOutput = `Verdict: ${vLabel}\nTime: ${data.timeMs != null ? data.timeMs + 'ms' : '—'}\nMemory: ${data.memoryKb != null ? data.memoryKb + ' KB' : '—'}`;
+          this.consoleOutput = `Verdict: ${vLabel}\nPassed: ${data.passedCount != null ? data.passedCount : '—'}/${data.totalCount != null ? data.totalCount : '—'}\nTime: ${data.timeMs != null ? data.timeMs + 'ms' : '—'}\nMemory: ${data.memoryKb != null ? data.memoryKb + ' KB' : '—'}`;
           this.loadSubmissions(this.contestId);
           this.loadLeaderboard(this.contestId);
         }

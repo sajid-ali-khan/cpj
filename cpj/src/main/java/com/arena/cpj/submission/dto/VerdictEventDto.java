@@ -13,4 +13,6 @@ public class VerdictEventDto {
     private final Verdict verdict;
     private final Integer timeMs;
     private final Integer memoryKb;
+    private final Integer passedCount;
+    private final Integer totalCount;
 }

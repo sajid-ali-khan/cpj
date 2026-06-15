@@ -45,16 +45,13 @@ public class SubmissionService {
     private final Judge0Client judge0Client;
     private final Judge0Properties judge0Properties;
     private final SubmissionResultService submissionResultService;
-    private final UserRepository userRepository;
     private final LeaderboardRepository leaderboardRepository;
 
-    @Transactional
     public SubmitResponse submit(User user, Long contestId, Long problemId, String code, Integer languageId) {
         log.info("=== Submission Flow Started ===");
         log.info("Request Details - User: {}, Contest ID: {}, Problem ID: {}, Language ID: {}", 
                  user != null ? user.getName() + " (RollNo: " + user.getRollNo() + ", ID: " + user.getId() + ")" : "Anonymous", 
                  contestId, problemId, languageId);
-        log.info("Submitted Source Code:\n{}", code);
  
         try {
             validateSubmitRequest(contestId, problemId, code, languageId);
@@ -139,7 +136,6 @@ public class SubmissionService {
         return submit(user, request.getContestId(), request.getQuestionId(), request.getCode(), languageId);
     }
 
-    @Transactional(readOnly = true)
     public List<SubmissionResponse> getSubmissions(Long userId, Long contestId) {
         return submissionRepository.findByUserIdAndContestIdOrderBySubmittedAtDesc(userId, contestId)
                 .stream()
@@ -345,7 +341,7 @@ public class SubmissionService {
         List<TestCase> allCases = testCaseRepository.findByProblemId(problem.getId());
 
         if (allCases.isEmpty()) {
-            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false);
+            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false, 0, 0);
             return StudentSubmitResponse.builder()
                     .success(false)
                     .verdict("Runtime Error")
@@ -398,7 +394,7 @@ public class SubmissionService {
                 }
             }
 
-            submissionResultService.finalize(submissionId, finalVerdict, timeMs, memoryKb, finalVerdict == Verdict.ACCEPTED);
+            submissionResultService.finalize(submissionId, finalVerdict, timeMs, memoryKb, finalVerdict == Verdict.ACCEPTED, passedCount, allCases.size());
 
             return StudentSubmitResponse.builder()
                     .success(finalVerdict == Verdict.ACCEPTED)
@@ -409,7 +405,7 @@ public class SubmissionService {
 
         } catch (Exception e) {
             log.error("Synchronous submission judge failed", e);
-            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false);
+            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false, 0, allCases.size());
             return StudentSubmitResponse.builder()
                     .success(false)
                     .verdict("Runtime Error")

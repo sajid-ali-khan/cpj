@@ -26,7 +26,8 @@ public class SubmissionResultService {
  
     @Transactional
     public void finalize(Long submissionId, Verdict verdict, Integer timeMs,
-                         Integer memoryKb, boolean checkLeaderboard) {
+                         Integer memoryKb, boolean checkLeaderboard,
+                         Integer passedCount, Integer totalCount) {
         log.info("Finalizing submission result - ID: {}, Verdict: {}, Time: {}ms, Memory: {}KB, CheckLeaderboard: {}", 
                  submissionId, verdict, timeMs, memoryKb, checkLeaderboard);
  
@@ -76,6 +77,8 @@ public class SubmissionResultService {
                     .verdict(verdict)
                     .timeMs(timeMs)
                     .memoryKb(memoryKb)
+                    .passedCount(passedCount)
+                    .totalCount(totalCount)
                     .build());
         };
  

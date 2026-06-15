@@ -13,4 +13,5 @@ public class Judge0Properties {
     private String callbackBaseUrl = "http://localhost:8080";
     private double cpuTimeLimit = 1.0;
     private int memoryLimitKb = 262144;
+    private int maxConcurrentRequests = 5;
 }

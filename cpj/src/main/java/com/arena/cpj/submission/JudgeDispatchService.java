@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -27,116 +26,124 @@ public class JudgeDispatchService {
     private final Judge0Properties judge0Properties;
     private final SubmissionResultService submissionResultService;
 
+    /**
+     * We call this method asynchronously after the submission is saved to the
+     * database. It will load the submission and related data, submit it to Judge0,
+     * and process the results.
+     * The method is annotated with @Async, so it will run in a separate thread and
+     * not block the main request thread. This is important because the judging
+     * process can take a long time, especially if there are many test cases or if
+     * the code takes a long time to run.
+     */
     @Async
-    @Transactional
     public void dispatch(Long submissionId) {
         log.info("=== Dispatching Judge Request ===");
         log.info("Submission ID: {}", submissionId);
         try {
+            // Step 1: Load submission and related data from DB
+            // short-lived transaction/connection (Spring Data default). ──
             Submission submission = submissionRepository.findById(submissionId)
                     .orElseThrow(() -> new NotFoundException("Submission not found: " + submissionId));
- 
+
+            String code = submission.getCode();
+            Integer languageId = submission.getLanguageId();
+            Long problemId = submission.getProblem().getId();
+
             List<TestCase> testCases = loadJudgeTestCases(submission.getProblem().getId());
             log.info("Loaded {} test case(s) for problem ID: {}", testCases.size(), submission.getProblem().getId());
-            for (int i = 0; i < testCases.size(); i++) {
-                TestCase tc = testCases.get(i);
-                log.info("TestCase #{} -> ID: {}, isSample: {}, stdinLength: {}, expectedOutputLength: {}", 
-                         i + 1, tc.getId(), tc.isSample(), 
-                         tc.getStdin() != null ? tc.getStdin().length() : 0, 
-                         tc.getExpectedOutput() != null ? tc.getExpectedOutput().length() : 0);
-            }
- 
+
             if (testCases.isEmpty()) {
                 log.warn("No testcases found for problem ID: {}, marking RUNTIME_ERROR",
                         submission.getProblem().getId());
-                submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false);
+                submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false, 0, 0);
                 return;
             }
- 
+
             // Build one request per testcase
             List<Judge0SubmissionRequest> requests = testCases.stream()
                     .map(tc -> Judge0SubmissionRequest.builder()
-                            .sourceCode(submission.getCode())
-                            .languageId(submission.getLanguageId())
+                            .sourceCode(code)
+                            .languageId(languageId)
                             .stdin(tc.getStdin())
                             .expectedOutput(tc.getExpectedOutput())
                             .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
                             .memoryLimitKb(judge0Properties.getMemoryLimitKb())
                             .build())
                     .toList();
- 
+
+            // ── Step 2: NO transaction held here. Up to ~60s, but no DB
+            // connection is pinned during this call. ──
             // Submit all testcases in one batch call, then poll until all are resolved
             log.info("Dispatching batch of {} testcase(s) for submission ID: {}", requests.size(), submissionId);
             List<Judge0CallbackPayload> results = judge0Client.submitBatchAndWait(requests);
             log.info("Batch execution completed. Received {} result(s).", results.size());
- 
-            // Store the token of the first result for traceability
-            if (!results.isEmpty() && results.get(0).getToken() != null) {
-                log.info("Storing first Judge0 token for traceability: {}", results.get(0).getToken());
-                submission.setJudge0Token(results.get(0).getToken());
-                submissionRepository.save(submission);
-            }
- 
-            // Walk results in testcase order — first non-AC determines the final verdict.
+
+            // Step 3: Short transaction(s) to persist results.
+            persistJudge0Token(submissionId, results.isEmpty() ? null : results.get(0).getToken());
+
             // Time and memory are taken from the worst-case (last) testcase that ran.
             Verdict finalVerdict = Verdict.ACCEPTED;
             Integer timeMs = null;
             Integer memoryKb = null;
- 
+            int passedCount = 0;
+
             for (int i = 0; i < results.size(); i++) {
                 Judge0CallbackPayload result = results.get(i);
                 int statusId = result.getStatus() != null ? result.getStatus().getId() : 0;
-                String statusDescription = result.getStatus() != null ? result.getStatus().getDescription() : "UNKNOWN";
                 Verdict verdict = Judge0StatusMapper.toVerdict(statusId);
- 
-                log.info("--- TestCase #{} Result ---", i + 1);
-                log.info("Token: {}", result.getToken());
-                log.info("Status: {} (ID: {})", statusDescription, statusId);
-                log.info("Mapped Verdict: {}", verdict);
-                log.info("Time: {}s, Memory: {} KB", result.getTime(), result.getMemory());
-                if (result.getStdout() != null && !result.getStdout().isBlank()) {
-                    log.info("Stdout:\n{}", result.getStdout());
-                }
-                if (result.getStderr() != null && !result.getStderr().isBlank()) {
-                    log.info("Stderr:\n{}", result.getStderr());
-                }
-                if (result.getCompileOutput() != null && !result.getCompileOutput().isBlank()) {
-                    log.info("Compile Output:\n{}", result.getCompileOutput());
-                }
-                if (result.getMessage() != null && !result.getMessage().isBlank()) {
-                    log.info("Message: {}", result.getMessage());
-                }
-                log.info("----------------------------");
- 
-                // Always update time/memory so we report the last measured testcase
-                timeMs   = parseTimeMs(result.getTime());
+
+                log.debug("TestCase #{} -> token={}, status={} ({}), verdict={}, time={}s, memory={}KB",
+                        i + 1, result.getToken(),
+                        result.getStatus() != null ? result.getStatus().getDescription() : "UNKNOWN",
+                        statusId, verdict, result.getTime(), result.getMemory());
+                log.trace("TestCase #{} stdout: {}", i + 1, result.getStdout());
+                log.trace("TestCase #{} stderr: {}", i + 1, result.getStderr());
+                log.trace("TestCase #{} compileOutput: {}", i + 1, result.getCompileOutput());
+
+                timeMs = parseTimeMs(result.getTime());
                 memoryKb = result.getMemory();
- 
+
                 if (verdict != Verdict.ACCEPTED) {
                     finalVerdict = verdict;
                     log.info("TestCase #{} failed with verdict: {}. Stopping evaluation.", i + 1, verdict);
-                    break; // no need to check remaining testcases
+                    break;
                 }
+                passedCount++;
             }
- 
-            log.info("Finalizing judge result for submission ID {}: finalVerdict={}, timeMs={}, memoryKb={}", 
-                     submissionId, finalVerdict, timeMs, memoryKb);
+
+            int totalCount = results.size();
+
+            log.info(
+                    "Finalizing judge result for submission ID {}: finalVerdict={}, timeMs={}, memoryKb={}, passed={}/{}",
+                    submissionId, finalVerdict, timeMs, memoryKb, passedCount, totalCount);
             submissionResultService.finalize(
                     submissionId,
                     finalVerdict,
                     timeMs,
                     memoryKb,
-                    finalVerdict == Verdict.ACCEPTED);
- 
+                    finalVerdict == Verdict.ACCEPTED,
+                    passedCount,
+                    totalCount);
+
         } catch (Exception ex) {
             log.error("Failed to judge submission ID: {}", submissionId, ex);
-            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false);
+            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false, 0, 0);
         }
         log.info("=== Dispatch Processing Finished ===");
     }
 
     private List<TestCase> loadJudgeTestCases(Long problemId) {
         return testCaseRepository.findByProblemId(problemId);
+    }
+
+    private void persistJudge0Token(Long submissionId, String token) {
+        if (token == null) {
+            return;
+        }
+        submissionRepository.findById(submissionId).ifPresent(s -> {
+            s.setJudge0Token(token);
+            submissionRepository.save(s);
+        });
     }
 
     private Integer parseTimeMs(String time) {

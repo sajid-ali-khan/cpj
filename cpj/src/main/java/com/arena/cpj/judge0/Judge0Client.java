@@ -2,9 +2,8 @@ package com.arena.cpj.judge0;
 
 import com.arena.cpj.config.Judge0Properties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -12,27 +11,34 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class Judge0Client {
 
     private final Judge0Properties properties;
     private final ObjectMapper objectMapper;
+    private final RestClient restClient;
+    private final Semaphore semaphore;
 
-    /**
-     * RestClient with explicit timeouts.
-     * Read timeout is kept short because all calls are either
-     * fire-and-forget (submit) or quick status polls (GET token/batch).
-     */
-    private final RestClient restClient = buildRestClient();
+    public Judge0Client(Judge0Properties properties, ObjectMapper objectMapper) {
+        this.properties = properties;
+        this.objectMapper = objectMapper;
+        this.semaphore = new Semaphore(properties.getMaxConcurrentRequests());
 
-    private static RestClient buildRestClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5_000);   // 5 s — fail fast if Judge0 is unreachable
-        factory.setReadTimeout(10_000);     // 10 s — polls are fast; no wait=true
-        return RestClient.builder()
+        java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(5))
+                .build();
+
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(java.time.Duration.ofSeconds(10));
+
+        this.restClient = RestClient.builder()
                 .requestFactory(factory)
                 .build();
     }
@@ -49,7 +55,7 @@ public class Judge0Client {
     private static final int MAX_POLLS = 40;
 
     /** Judge0 status IDs that mean the job is still in flight. */
-    private static final int STATUS_IN_QUEUE   = 1;
+    private static final int STATUS_IN_QUEUE = 1;
     private static final int STATUS_PROCESSING = 2;
 
     // ─── Batch API ───────────────────────────────────────────────────────────
@@ -58,48 +64,66 @@ public class Judge0Client {
      * Submits all testcase requests to Judge0 in a single batch call and polls
      * {@code GET /submissions/batch} until every token has a final status.
      *
-     * <p>One HTTP call to submit, one polling loop for all results — regardless
+     * <p>
+     * One HTTP call to submit, one polling loop for all results — regardless
      * of how many testcases there are.
      *
      * @return list of final results in the same order as {@code requests}
      */
     public List<Judge0CallbackPayload> submitBatchAndWait(List<Judge0SubmissionRequest> requests) {
-        // Step 1: send all testcases in one POST
-        List<String> tokens = submitBatch(requests);
-        log.info("Batch submitted {} testcase(s). Tokens: {}", tokens.size(), tokens);
-
-        // Step 2: poll until every token is resolved
-        String tokenParam = String.join(",", tokens);
-        for (int attempt = 0; attempt < MAX_POLLS; attempt++) {
-            sleep(POLL_INTERVAL_MS);
-
-            List<Judge0CallbackPayload> results = getBatch(tokenParam);
-
-            boolean allDone = true;
-            long pending = 0;
-
-            for (Judge0CallbackPayload r : results) {
-                int id = r.getStatus() != null ? r.getStatus().getId() : 0;
-                
-                boolean stillRunning = id == STATUS_IN_QUEUE || id == STATUS_PROCESSING;
-
-                if (stillRunning) {
-                    pending++;
-                    allDone = false;
-                }
-            }
-
-            if (allDone) {
-                log.info("Batch resolved after {} poll(s). Results: {}", attempt + 1, results);
-                return results;
-            }
-            
-            log.info("Batch poll {}/{}: {}/{} token(s) still pending",
-                    attempt + 1, MAX_POLLS, pending, tokens.size());
+        try {
+            semaphore.acquire();
+        }catch(InterruptedException e){
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for a Judge0 execution slot", e);
         }
+        
+        try {
+            // Step 1: send all testcases in one POST
+            List<String> tokens = submitBatch(requests);
+            log.info("Batch submitted {} testcase(s). Tokens: {}", tokens.size(), tokens);
 
-        throw new IllegalStateException(
-                "Batch did not finish within the poll budget (" + MAX_POLLS + " attempts)");
+            // Step 2: poll only the tokens still pending, until all are resolved
+            Map<String, Judge0CallbackPayload> resolved = new LinkedHashMap<>();
+            Set<String> pending = new LinkedHashSet<>(tokens);
+
+            for (int attempt = 0; attempt < MAX_POLLS && !pending.isEmpty(); attempt++) {
+                sleep(POLL_INTERVAL_MS);
+
+                String tokenParam = String.join(",", pending);
+                List<Judge0CallbackPayload> results = getBatch(tokenParam);
+
+                for (Judge0CallbackPayload r : results) {
+                    int id = r.getStatus() != null ? r.getStatus().getId() : 0;
+                    boolean stillRunning = id == STATUS_IN_QUEUE || id == STATUS_PROCESSING;
+
+                    if (!stillRunning) {
+                        resolved.put(r.getToken(), r);
+                        pending.remove(r.getToken());
+                    }
+                }
+
+                if (pending.isEmpty()) {
+                    log.info("Batch resolved after {} poll(s)", attempt + 1);
+                    break;
+                }
+
+                log.info("Batch poll {}/{}: {}/{} token(s) still pending",
+                        attempt + 1, MAX_POLLS, pending.size(), tokens.size());
+            }
+
+            if (!pending.isEmpty()) {
+                throw new IllegalStateException(
+                        "Batch did not finish within the poll budget (" + MAX_POLLS + " attempts)");
+            }
+
+            // Re-assemble in original submission order
+            return tokens.stream()
+                    .map(resolved::get)
+                    .collect(Collectors.toList());
+        } finally {
+            semaphore.release();
+        }
     }
 
     /**
@@ -117,7 +141,7 @@ public class Judge0Client {
         String bodyJson = "";
         try {
             bodyJson = objectMapper.writeValueAsString(body);
-            log.info("Sending batch submit request to Judge0: {}", bodyJson);
+            log.debug("Sending batch submit request to Judge0: {}", bodyJson);
         } catch (Exception e) {
             log.warn("Failed to log batch submit request payload", e);
         }
@@ -150,7 +174,8 @@ public class Judge0Client {
     }
 
     /**
-     * {@code GET /submissions/batch?tokens=t1,t2,...} — fetches current state of all tokens.
+     * {@code GET /submissions/batch?tokens=t1,t2,...} — fetches current state of
+     * all tokens.
      */
     public List<Judge0CallbackPayload> getBatch(String commaSeparatedTokens) {
         log.info("Polling batch status from Judge0 for tokens: {}", commaSeparatedTokens);
