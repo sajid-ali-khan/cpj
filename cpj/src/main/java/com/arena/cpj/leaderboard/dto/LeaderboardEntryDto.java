@@ -19,4 +19,5 @@ public class LeaderboardEntryDto {
     private final int solvedCount;
     private final int totalQuestions;
     private final int maxScore;
+    private final int violations;
 }

@@ -44,6 +44,10 @@ public class Leaderboard {
     @Builder.Default
     private Integer solvedCount = 0;
 
+    @Column(name = "violations", nullable = false)
+    @Builder.Default
+    private Integer violations = 0;
+
     /** Timestamp of the most recent accepted submission; null until first AC */
     @Column(name = "last_ac_time")
     private LocalDateTime lastAcTime;

@@ -196,7 +196,10 @@ export class ContestArenaStateService implements OnDestroy {
     this.submitError = '';
     this.submittingContest = true;
     this.apiService.submitContest(contestId).subscribe({
-      next: () => success(),
+      next: () => {
+        this.submittingContest = false;
+        success();
+      },
       error: (e) => {
         this.submittingContest = false;
         this.submitError = e.error?.error || 'Failed';

@@ -58,7 +58,11 @@
                       <button (click)="register(contest.id)" class="btn btn-primary">Register</button>
                     } @else {
                       @if (getRegistrationStatus(contest.id) === 'FINISHED') {
-                        <span style="color: var(--text-muted); font-size: 13px; font-weight: bold; margin-right: 5px;">Submitted</span>
+                        @if (hasViolatedLimit(contest.id)) {
+                          <span style="color: #f85149; font-size: 13px; font-weight: bold; margin-right: 5px;">Ended</span>
+                        } @else {
+                          <span style="color: var(--text-muted); font-size: 13px; font-weight: bold; margin-right: 5px;">Submitted</span>
+                        }
                       } @else {
                         <a [routerLink]="['/contest', contest.id]" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;">Enter Arena</a>
                       }

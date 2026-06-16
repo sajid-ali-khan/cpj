@@ -60,6 +60,10 @@ export class DashboardComponent implements OnInit {
     const reg = this.registrations.find(r => Number(r.contestId) === Number(contestId));
     return reg ? reg.status : '';
   }
+  hasViolatedLimit(contestId: number): boolean {
+    const reg = this.registrations.find(r => Number(r.contestId) === Number(contestId));
+    return reg ? reg.violations >= 3 : false;
+  }
 
   register(contestId: number): void {
     this.apiService.registerForContest(contestId).subscribe({

@@ -1,122 +1,122 @@
 <!--
   File: contest-arena.component.html
-  Purpose: Markup for the student Coding Arena workspace.
+  Purpose: Markup for the student Coding Arena workspace with LAN security warnings/lock overlays.
 -->
-
 <div class="container">
-  <div class="header-bar">
-    <div><a routerLink="/student/dashboard" class="back-link">&larr; Back to Dashboard</a><h2 class="header-title">Coding Arena</h2></div>
-    <div class="problem-tabs">
-      @for (prob of state.problems; track prob.problemId; let i = $index) { <button (click)="onProblemChange(i)" class="btn btn-problem" [class.btn-primary]="state.activeQ === i" [class.solved]="state.isSolved(prob.problemId)">Q{{ i + 1 }} ({{ prob.points }} pts)</button> }
-    </div>
-    <div class="header-actions">
-      <button (click)="showLeaderboardModal = true; state.loadLeaderboard(state.contestId)" class="btn">Leaderboard</button>
-      <button (click)="showSubmitModal = true; state.submitError = ''" class="btn btn-danger">Submit Entire Exam</button>
-    </div>
-  </div>
-
-  <div class="split-layout" [class.editor-expanded]="isEditorExpanded">
-    @if (!isEditorExpanded) { <div class="panel-left">
-        <div class="panel-left-tabs">
-          <span (click)="leftTab = 'description'" class="tab" [class.active]="leftTab === 'description'">Description</span>
-          <span (click)="leftTab = 'submissions'; state.loadSubmissions(state.contestId)" class="tab" [class.active]="leftTab === 'submissions'">Submissions</span>
-        </div>
-        <div class="panel-left-content">
-          @if (leftTab === 'description' && state.problems[state.activeQ]) {
-            <div class="card card-description">
-              <h3 class="card-title">{{ state.problems[state.activeQ].title }} <span class="card-difficulty">({{ state.problems[state.activeQ].difficulty }} | {{ state.problems[state.activeQ].points }} pts)</span> <span [class]="state.isSolved(state.problems[state.activeQ].problemId) ? 'badge-solved' : 'badge-unsolved'">{{ state.isSolved(state.problems[state.activeQ].problemId) ? 'Solved' : 'Unsolved' }}</span></h3>
-              <div class="problem-desc">{{ state.problems[state.activeQ].description }}</div>
-              @if (state.problems[state.activeQ].constraints) { <h4 class="sub-heading">Constraints</h4><pre class="pre-box">{{ state.problems[state.activeQ].constraints }}</pre> }
-              @if (state.problems[state.activeQ].inputStructure) { <h4 class="sub-heading">Input Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].inputStructure }}</div> }
-              @if (state.problems[state.activeQ].outputStructure) { <h4 class="sub-heading">Output Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].outputStructure }}</div> }
-            </div>
-          } @else if (leftTab === 'submissions') {
-            <div class="card card-description">
-              <h3 class="submissions-title">My Submissions</h3>
-              @if (state.problemSubmissions.length === 0) { <div class="no-submissions">No submissions yet.</div> } @else {
-                <table>
-                  <thead><tr><th>Time</th><th>Lang</th><th>Verdict</th><th style="text-align: right;">Action</th></tr></thead>
-                  <tbody>
-                    @for (sub of state.problemSubmissions; track sub.id) {
-                      <tr>
-                        <td class="sub-time">{{ sub.submittedAt | date:'HH:mm:ss' }}</td>
-                        <td class="sub-lang">{{ sub.languageId === 62 ? 'Java' : sub.languageId === 54 ? 'C++' : 'Python' }}</td>
-                        <td [style.color]="sub.verdict === 'ACCEPTED' ? '#56d364' : '#f85149'" class="sub-verdict">{{ sub.verdict.replace('_', ' ') }}</td>
-                        <td style="text-align: right;"><button (click)="useCode(sub.code, sub.languageId)" class="btn btn-primary btn-use-code">Use Code</button></td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              }
-            </div>
-          }
-        </div>
-      </div> }
-
-    <div class="panel-right" [class.panel-full]="isEditorExpanded">
-      <div class="toolbar">
-        <span class="toolbar-label">Language:</span>
-        <select [ngModel]="state.selectedLang" (ngModelChange)="onLangChange($event)" class="toolbar-select">
-          <option value="java">Java</option><option value="cpp">C++</option><option value="python">Python</option>
-        </select>
-        <div style="flex: 1;"></div>
-        <span class="toolbar-info">Saves code instantly</span>
-        @if (isEditorExpanded) {
-          <button (click)="runAndCollapse()" class="btn toolbar-btn" [disabled]="state.loading || state.submitting">{{ state.loading ? 'Running…' : 'Run Code' }}</button>
-          <button (click)="submitAndCollapse()" class="btn btn-success toolbar-btn" [disabled]="state.loading || state.submitting">{{ state.submitting ? 'Submitting…' : 'Submit Solution' }}</button>
+  @if (isCurrentUserLocked) {
+    <div class="security-overlay lock-overlay">
+      <div class="security-card lock-card">
+        <h3 style="color: #f85149;">Session Locked</h3>
+        <p>Your session has been locked due to security violations (3/3).</p>
+        @if (state.submittingContest) {
+          <p style="font-weight: bold; color: #ff9800;">Your exam is being automatically submitted... Please wait.</p>
+        } @else {
+          <p>Your exam has been automatically submitted.</p>
         }
-        <button (click)="toggleEditorExpand()" class="btn editor-expand-btn" [title]="isEditorExpanded ? 'Collapse editor' : 'Expand editor'" aria-label="Toggle editor size" id="editor-expand-toggle">
-          @if (isEditorExpanded) {
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="3" y2="21"></line><line x1="21" y1="3" x2="14" y2="10"></line></svg>
-          } @else {
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>
-          }
-        </button>
+        <p style="font-size: 12px; color: #888;">Please contact the admin to unlock your workstation.</p>
       </div>
-
-      <div id="editor-container" class="editor-box"></div>
-
-      @if (!isEditorExpanded) {
-        <div class="console-box">
-          <div class="console-header">
-            <div class="console-tabs">
-              @if (state.problems[state.activeQ]?.testCases) {
-                @for (tc of state.problems[state.activeQ].testCases; track $index; let i = $index) {
-                  <span (click)="selectTab(i)" class="tab" [class.active]="state.consoleTab === i" [style.border-bottom-color]="state.tcVerdicts[i] === 'Accepted' ? '#56d364' : (state.tcVerdicts[i] ? '#f85149' : (state.consoleTab === i ? 'var(--color-blue)' : 'transparent'))" [style.color]="state.tcVerdicts[i] === 'Accepted' ? '#56d364' : (state.tcVerdicts[i] ? '#f85149' : (state.consoleTab === i ? 'var(--text-bright)' : 'var(--text-main)'))">Case {{ i + 1 }}</span>
-                }
-              }
-              <span (click)="selectTab('custom')" class="tab" [class.active]="state.consoleTab === 'custom'">Custom Input</span>
-            </div>
-            <div class="console-btns">
-              <button (click)="runCode()" class="btn console-btn" [disabled]="state.loading || state.submitting">{{ state.loading ? 'Running...' : 'Run Code' }}</button>
-              <button (click)="submitCode()" class="btn btn-success console-btn" [disabled]="state.loading || state.submitting">{{ state.submitting ? 'Submitting...' : 'Submit Solution' }}</button>
-            </div>
-          </div>
-
-          <div class="console-inner">
-            <div class="console-left-panel">
-              @if (state.consoleTab === 'custom') {
-                <span class="console-label">Input:</span><textarea [(ngModel)]="state.customInput" class="console-textarea"></textarea>
-                <span class="console-label">Actual:</span><pre class="console-pre-actual">{{ state.tcOutputs['custom'] || '—' }}</pre>
-              } @else {
-                @if (state.problems[state.activeQ]?.testCases?.[state.consoleTab]) {
-                  <span class="console-label">Input:</span><pre class="console-pre-case">{{ state.problems[state.activeQ].testCases[state.consoleTab].input }}</pre>
-                  <span class="console-label">Expected:</span><pre class="console-pre-case">{{ state.problems[state.activeQ].testCases[state.consoleTab].output }}</pre>
-                  <span class="console-label">Actual:</span><pre class="console-pre-case" [style.color]="state.tcVerdicts[state.consoleTab] === 'Accepted' ? '#56d364' : (state.tcVerdicts[state.consoleTab] ? '#f85149' : 'var(--text-main)')">{{ state.tcOutputs[state.consoleTab] || '—' }}</pre>
-                }
-              }
-            </div>
-            <div class="console-right-panel">
-              <span class="console-label">Console Output / Verdict:</span>
-              <pre class="console-output-pre" [style.color]="state.consoleTab === 'custom' ? 'var(--text-main)' : (state.tcVerdicts[state.consoleTab] === 'Accepted' ? '#56d364' : (state.tcVerdicts[state.consoleTab] ? '#f85149' : 'var(--text-main)'))">{{ state.consoleOutput }}</pre>
-            </div>
-          </div>
-        </div>
-      }
     </div>
-  </div>
+  } @else if (!hasStarted) {
+    <div class="security-overlay"><div class="security-card"><h3>Contest Security Lock</h3><p>This contest must be written in fullscreen mode to ensure compliance. Switching tabs or exiting fullscreen will record a violation.</p><button (click)="enterFullscreen()" class="btn btn-success">Enter Fullscreen & Start Exam</button></div></div>
+  } @else {
+    <div class="header-bar">
+      <div><a routerLink="/student/dashboard" class="back-link">&larr; Back to Dashboard</a><h2 class="header-title">Coding Arena</h2></div>
+      <div class="problem-tabs">@for (prob of state.problems; track prob.problemId; let i = $index) { <button (click)="onProblemChange(i)" class="btn btn-problem" [class.btn-primary]="state.activeQ === i" [class.solved]="state.isSolved(prob.problemId)">Q{{ i + 1 }} ({{ prob.points }} pts)</button> }</div>
+      <div class="header-actions"><button (click)="showLeaderboardModal = true; state.loadLeaderboard(state.contestId)" class="btn">Leaderboard</button><button (click)="showSubmitModal = true; state.submitError = ''" class="btn btn-danger">Submit Entire Exam</button></div>
+    </div>
+    <div class="split-layout" [class.editor-expanded]="isEditorExpanded">
+      @if (!isEditorExpanded) { <div class="panel-left">
+          <div class="panel-left-tabs"><span (click)="leftTab = 'description'" class="tab" [class.active]="leftTab === 'description'">Description</span><span (click)="leftTab = 'submissions'; state.loadSubmissions(state.contestId)" class="tab" [class.active]="leftTab === 'submissions'">Submissions</span></div>
+          <div class="panel-left-content">
+            @if (leftTab === 'description' && state.problems[state.activeQ]) {
+              <div class="card card-description">
+                <h3 class="card-title">{{ state.problems[state.activeQ].title }} <span class="card-difficulty">({{ state.problems[state.activeQ].difficulty }} | {{ state.problems[state.activeQ].points }} pts)</span> <span [class]="state.isSolved(state.problems[state.activeQ].problemId) ? 'badge-solved' : 'badge-unsolved'">{{ state.isSolved(state.problems[state.activeQ].problemId) ? 'Solved' : 'Unsolved' }}</span></h3>
+                <div class="problem-desc">{{ state.problems[state.activeQ].description }}</div>
+                @if (state.problems[state.activeQ].constraints) { <h4 class="sub-heading">Constraints</h4><pre class="pre-box">{{ state.problems[state.activeQ].constraints }}</pre> }
+                @if (state.problems[state.activeQ].inputStructure) { <h4 class="sub-heading">Input Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].inputStructure }}</div> }
+                @if (state.problems[state.activeQ].outputStructure) { <h4 class="sub-heading">Output Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].outputStructure }}</div> }
+              </div>
+            } @else if (leftTab === 'submissions') {
+              <div class="card card-description">
+                <h3 class="submissions-title">My Submissions</h3>
+                @if (state.problemSubmissions.length === 0) { <div class="no-submissions">No submissions yet.</div> } @else {
+                  <table>
+                    <thead><tr><th>Time</th><th>Lang</th><th>Verdict</th><th style="text-align: right;">Action</th></tr></thead>
+                    <tbody>
+                      @for (sub of state.problemSubmissions; track sub.id) {
+                        <tr>
+                          <td class="sub-time">{{ sub.submittedAt | date:'HH:mm:ss' }}</td>
+                          <td class="sub-lang">{{ sub.languageId === 62 ? 'Java' : sub.languageId === 54 ? 'C++' : 'Python' }}</td>
+                          <td [style.color]="sub.verdict === 'ACCEPTED' ? '#56d364' : '#f85149'" class="sub-verdict">{{ sub.verdict.replace('_', ' ') }}</td>
+                          <td style="text-align: right;"><button (click)="useCode(sub.code, sub.languageId)" class="btn btn-primary btn-use-code">Use Code</button></td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            }
+          </div>
+        </div> }
+      <div class="panel-right" [class.panel-full]="isEditorExpanded">
+        <div class="toolbar">
+          <span class="toolbar-label">Language:</span><select [ngModel]="state.selectedLang" (ngModelChange)="onLangChange($event)" class="toolbar-select"><option value="java">Java</option><option value="cpp">C++</option><option value="python">Python</option></select>
+          <div style="flex: 1;"></div><span class="toolbar-info">Saves code instantly</span>
+          @if (isEditorExpanded) {
+            <button (click)="runAndCollapse()" class="btn toolbar-btn" [disabled]="state.loading || state.submitting">{{ state.loading ? 'Running…' : 'Run Code' }}</button>
+            <button (click)="submitAndCollapse()" class="btn btn-success toolbar-btn" [disabled]="state.loading || state.submitting">{{ state.submitting ? 'Submitting…' : 'Submit Solution' }}</button>
+          }
+          <button (click)="toggleEditorExpand()" class="btn editor-expand-btn" [title]="isEditorExpanded ? 'Collapse editor' : 'Expand editor'" aria-label="Toggle editor size" id="editor-expand-toggle">
+            @if (isEditorExpanded) { <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="3" y2="21"></line><line x1="21" y1="3" x2="14" y2="10"></line></svg> }
+            @else { <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg> }
+          </button>
+        </div>
+        <div id="editor-container" class="editor-box"></div>
+        @if (!isEditorExpanded) {
+          <div class="console-box">
+            <div class="console-header">
+              <div class="console-tabs">
+                @if (state.problems[state.activeQ]?.testCases) { @for (tc of state.problems[state.activeQ].testCases; track $index; let i = $index) { <span (click)="selectTab(i)" class="tab" [class.active]="state.consoleTab === i" [style.border-bottom-color]="state.tcVerdicts[i] === 'Accepted' ? '#56d364' : (state.tcVerdicts[i] ? '#f85149' : (state.consoleTab === i ? 'var(--color-blue)' : 'transparent'))" [style.color]="state.tcVerdicts[i] === 'Accepted' ? '#56d364' : (state.tcVerdicts[i] ? '#f85149' : (state.consoleTab === i ? 'var(--text-bright)' : 'var(--text-main)'))">Case {{ i + 1 }}</span> } }
+                <span (click)="selectTab('custom')" class="tab" [class.active]="state.consoleTab === 'custom'">Custom Input</span>
+              </div>
+              <div class="console-btns">
+                <button (click)="runCode()" class="btn console-btn" [disabled]="state.loading || state.submitting">{{ state.loading ? 'Running...' : 'Run Code' }}</button>
+                <button (click)="submitCode()" class="btn btn-success console-btn" [disabled]="state.loading || state.submitting">{{ state.submitting ? 'Submitting...' : 'Submit Solution' }}</button>
+              </div>
+            </div>
+            <div class="console-inner">
+              <div class="console-left-panel">
+                @if (state.consoleTab === 'custom') {
+                  <span class="console-label">Input:</span><textarea [(ngModel)]="state.customInput" class="console-textarea"></textarea>
+                  <span class="console-label">Actual:</span><pre class="console-pre-actual">{{ state.tcOutputs['custom'] || '—' }}</pre>
+                } @else {
+                  @if (state.problems[state.activeQ]?.testCases?.[state.consoleTab]) {
+                    <span class="console-label">Input:</span><pre class="console-pre-case">{{ state.problems[state.activeQ].testCases[state.consoleTab].input }}</pre>
+                    <span class="console-label">Expected:</span><pre class="console-pre-case">{{ state.problems[state.activeQ].testCases[state.consoleTab].output }}</pre>
+                    <span class="console-label">Actual:</span><pre class="console-pre-case" [style.color]="state.tcVerdicts[state.consoleTab] === 'Accepted' ? '#56d364' : (state.tcVerdicts[state.consoleTab] ? '#f85149' : 'var(--text-main)')">{{ state.tcOutputs[state.consoleTab] || '—' }}</pre>
+                  }
+                }
+              </div>
+              <div class="console-right-panel"><span class="console-label">Console Output / Verdict:</span><pre class="console-output-pre" [style.color]="state.consoleTab === 'custom' ? 'var(--text-main)' : (state.tcVerdicts[state.consoleTab] === 'Accepted' ? '#56d364' : (state.tcVerdicts[state.consoleTab] ? '#f85149' : 'var(--text-main)'))">{{ state.consoleOutput }}</pre></div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>
 
+@if (showWarningModal) {
+  <div class="modal-overlay">
+    <div class="modal-content security-warning-card">
+      <div class="modal-header"><h3 class="modal-title" style="color: #ff9800;">Security Warning</h3></div>
+      <p class="modal-body-text">A security violation was detected: <strong>{{ warningReason }}</strong>.</p>
+      <p class="modal-body-text" style="font-weight: bold;">Violations: {{ violations }} / 2 allowed.</p>
+      <p class="modal-body-text" style="font-size: 12px; color: #888;">The 3rd violation will automatically submit your exam and lock you out.</p>
+      <div class="modal-actions"><button (click)="enterFullscreen()" class="btn btn-success">Re-enter Fullscreen</button></div>
+    </div>
+  </div>
+}
 @if (showSubmitModal) {
   <div class="modal-overlay">
     <div class="modal-content modal-content-styled">
@@ -127,7 +127,6 @@
     </div>
   </div>
 }
-
 @if (showLeaderboardModal) {
   <div class="modal-overlay">
     <div class="modal-content modal-leaderboard">

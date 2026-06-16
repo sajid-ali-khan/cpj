@@ -35,4 +35,13 @@ public class User {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private UserRole role = UserRole.STUDENT;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private java.util.List<com.arena.cpj.submission.Submission> submissions;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private java.util.List<com.arena.cpj.leaderboard.Leaderboard> leaderboards;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private java.util.List<com.arena.cpj.auth.OtpVerification> otpVerifications;
 }

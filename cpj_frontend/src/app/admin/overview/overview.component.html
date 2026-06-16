@@ -2,46 +2,23 @@
   File: overview.component.html
   Purpose: Markup for the admin overview dashboard, showing metrics, contests list, and a leaderboard view dialog.
 -->
-
 <h2>Overview Dashboard</h2>
 <p class="sub-header">Monitor active contest schedules, resource counts, and server status.</p>
 
 <div class="stats-row">
-  <div class="card stat-card">
-    <span class="stat-label">Total Contests</span>
-    <span class="stat-value">{{ contestsCount }}</span>
-  </div>
-  <div class="card stat-card">
-    <span class="stat-label">Registered Students</span>
-    <span class="stat-value">{{ studentsCount }}</span>
-  </div>
-  <div class="card stat-card">
-    <span class="stat-label">Coding Questions</span>
-    <span class="stat-value">{{ problemsCount }}</span>
-  </div>
+  <div class="card stat-card"><span class="stat-label">Total Contests</span><span class="stat-value">{{ contestsCount }}</span></div>
+  <div class="card stat-card"><span class="stat-label">Registered Students</span><span class="stat-value">{{ studentsCount }}</span></div>
+  <div class="card stat-card"><span class="stat-label">Coding Questions</span><span class="stat-value">{{ problemsCount }}</span></div>
 </div>
 
 <div class="card table-card">
-  <div class="table-header">
-    <h3>Contests List</h3>
-    <button (click)="loadData()" class="btn btn-refresh">Refresh Data</button>
-  </div>
-
-  @if (loading) {
-    <div class="empty-state">Querying backend data...</div>
-  } @else if (contests.length === 0) {
-    <div class="empty-state">No contests registered on this server.</div>
-  } @else {
+  <div class="table-header"><h3>Contests List</h3><button (click)="loadData()" class="btn btn-refresh">Refresh Data</button></div>
+  @if (loading) { <div class="empty-state">Querying backend data...</div> }
+  @else if (contests.length === 0) { <div class="empty-state">No contests registered on this server.</div> }
+  @else {
     <table>
       <thead>
-        <tr>
-          <th>Contest ID</th>
-          <th>Contest Title</th>
-          <th>Start Time</th>
-          <th>Duration</th>
-          <th>Phase</th>
-          <th>Actions</th>
-        </tr>
+        <tr><th>Contest ID</th><th>Contest Title</th><th>Start Time</th><th>Duration</th><th>Phase</th><th>Actions</th></tr>
       </thead>
       <tbody>
         @for (contest of paginatedContests; track contest.id) {
@@ -50,25 +27,17 @@
             <td><strong class="title-bold">{{ contest.title }}</strong></td>
             <td>{{ contest.startTime | date:'medium' }}</td>
             <td>{{ contest.durationMins }} mins</td>
-            <td>
-              <span class="status-badge" [style.color]="contest.phase === 'LIVE' ? '#56d364' : contest.phase === 'UPCOMING' ? '#58a6ff' : '#8b949e'">
-                {{ contest.phase }}
-              </span>
-            </td>
+            <td><span class="status-badge" [style.color]="contest.phase === 'LIVE' ? '#56d364' : contest.phase === 'UPCOMING' ? '#58a6ff' : '#8b949e'">{{ contest.phase }}</span></td>
             <td>
               <div class="actions-row">
                 <button (click)="viewLeaderboard(contest.id, contest.title)" class="btn btn-small">Leaderboard</button>
-                @if (contest.phase === 'LIVE') {
-                  <button (click)="endContest(contest.id)" class="btn btn-danger btn-small">End Contest</button>
-                }
+                @if (contest.phase === 'LIVE') { <button (click)="endContest(contest.id)" class="btn btn-danger btn-small">End Contest</button> }
               </div>
             </td>
           </tr>
         }
       </tbody>
     </table>
-
-    <!-- Pagination Controls -->
     <div class="pagination-controls">
       <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }} (Total: {{ contests.length }})</span>
       <div class="pagination-btns">
@@ -86,32 +55,40 @@
         <h3 class="modal-title">Leaderboard: {{ leaderboardContestName }}</h3>
         <button (click)="showLeaderboard = false" class="btn btn-modal-close">Close</button>
       </div>
-
-      @if (leaderboardData.length === 0) {
-        <div class="modal-empty">No scores logged for this contest yet.</div>
-      } @else {
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 60px;">Rank</th>
-              <th>Student Name</th>
-              <th>Roll Number</th>
-              <th style="text-align: center;">Score</th>
-              <th style="text-align: right;">Last AC Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of leaderboardData; track row.rollNo; let idx = $index) {
+      @if (leaderboardData.length === 0) { <div class="modal-empty">No scores logged for this contest yet.</div> }
+      @else {
+        <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+          <input type="text" [(ngModel)]="leaderboardSearchQuery" placeholder="Search student by name or roll number..." style="flex: 1; padding: 6px 10px; font-size: 13px; border-radius: 4px; border: 1px solid var(--border-color); background: #0d1117; color: var(--text-bright);" />
+          @if (leaderboardSearchQuery) { <button (click)="leaderboardSearchQuery = ''" class="btn" style="padding: 4px 10px; font-size: 12px;">Clear</button> }
+        </div>
+        @if (filteredLeaderboard.length === 0) { <div class="modal-empty">No matching students found.</div> }
+        @else {
+          <table>
+            <thead>
               <tr>
-                <td class="rank-cell">#{{ idx + 1 }}</td>
-                <td><strong class="name-cell">{{ row.name }}</strong></td>
-                <td class="roll-cell">{{ row.rollNo }}</td>
-                <td class="score-cell">{{ row.score }}</td>
-                <td class="time-cell">{{ row.lastAcTime ? (row.lastAcTime | date:'HH:mm:ss') : '—' }}</td>
+                <th style="width: 50px;">Rank</th><th>Student Name</th><th>Roll Number</th>
+                <th style="text-align: center; width: 70px;">Score</th><th style="text-align: center; width: 90px;">Violations</th>
+                <th style="text-align: center; width: 90px;">Last AC Time</th><th style="text-align: right; width: 110px;">Actions</th>
               </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (row of filteredLeaderboard; track row.rollNo; let idx = $index) {
+                <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 'transparent'">
+                  <td class="rank-cell">#{{ idx + 1 }}</td>
+                  <td>
+                    <strong class="name-cell">{{ row.name }}</strong>
+                    @if (row.violations >= 3) { <span style="color: #f85149; font-weight: bold; font-size: 10px; margin-left: 8px; border: 1px solid rgba(248,81,73,0.3); padding: 1px 4px; border-radius: 4px;">LOCKED</span> }
+                  </td>
+                  <td class="roll-cell">{{ row.rollNo }}</td>
+                  <td class="score-cell">{{ row.score }}</td>
+                  <td class="roll-cell" style="text-align: center;">{{ row.violations }} / 3</td>
+                  <td class="time-cell" style="text-align: center;">{{ row.lastAcTime ? (row.lastAcTime | date:'HH:mm:ss') : '—' }}</td>
+                  <td style="text-align: right;"><button (click)="resetStudentViolations(row.rollNo)" class="btn btn-small" [disabled]="row.violations === 0" style="padding: 2px 6px; font-size: 11px;">Reset Warn</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
       }
     </div>
   </div>

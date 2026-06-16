@@ -74,3 +74,11 @@
 .btn-problem.solved.btn-primary { background: #2ea44f !important; border-color: #3fb950 !important; color: #fff !important; }
 .badge-solved { background: rgba(46, 160, 67, 0.15); color: #56d364; border: 1px solid rgba(46, 160, 67, 0.3); font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 12px; margin-left: 10px; text-transform: uppercase; }
 .badge-unsolved { background: rgba(248, 81, 73, 0.1); color: #f85149; border: 1px solid rgba(248, 81, 73, 0.15); font-size: 11px; font-weight: bold; padding: 2px 8px; border-radius: 12px; margin-left: 10px; text-transform: uppercase; }
+
+.security-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(13, 17, 23, 0.95); display: flex; justify-content: center; align-items: center; z-index: 10000; }
+.security-card { background: #161b22; border: 1px solid var(--border-color); padding: 30px; border-radius: 8px; max-width: 450px; text-align: center; }
+.security-card h3 { color: #56d364; margin-top: 0; font-size: 22px; }
+.security-card p { font-size: 14px; line-height: 1.6; color: var(--text-main); margin-bottom: 25px; }
+.security-warning-card { border-top: 4px solid #ff9800 !important; }
+.lock-card h3 { color: #f85149 !important; }
+

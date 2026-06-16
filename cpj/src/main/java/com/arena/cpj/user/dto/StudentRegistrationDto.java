@@ -11,4 +11,5 @@ import lombok.*;
 public class StudentRegistrationDto {
     private Long contestId;
     private ParticipantStatus status;
+    private int violations;
 }

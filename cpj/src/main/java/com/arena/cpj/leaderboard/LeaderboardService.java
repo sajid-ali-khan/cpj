@@ -81,6 +81,7 @@ public class LeaderboardService {
                             .solvedCount(row.getSolvedCount())
                             .totalQuestions(contest.getProblemCount())
                             .maxScore(contest.getMaxScore())
+                            .violations(row.getViolations())
                             .build();
                 })
                 .toList();
