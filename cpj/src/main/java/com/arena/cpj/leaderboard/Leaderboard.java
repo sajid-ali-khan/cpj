@@ -38,7 +38,7 @@ public class Leaderboard {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private ParticipantStatus status = ParticipantStatus.NOT_STARTED;
+    private ParticipantStatus status = ParticipantStatus.REGISTERED;
 
     @Column(name = "solved_count", nullable = false)
     @Builder.Default

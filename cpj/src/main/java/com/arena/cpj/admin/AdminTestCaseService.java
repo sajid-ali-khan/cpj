@@ -25,6 +25,9 @@ public class AdminTestCaseService {
     public TestCaseResponse create(Long problemId, CreateTestCaseRequest request) {
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new NotFoundException("Problem not found: " + problemId));
+        if (problem.isDeleted()) {
+            throw new NotFoundException("Problem not found: " + problemId);
+        }
 
         if (request.getExpectedOutput() == null || request.getExpectedOutput().isBlank()) {
             throw new BadRequestException("expectedOutput is required");
@@ -42,7 +45,9 @@ public class AdminTestCaseService {
 
     @Transactional(readOnly = true)
     public List<TestCaseResponse> list(Long problemId) {
-        if (!problemRepository.existsById(problemId)) {
+        Problem problem = problemRepository.findById(problemId)
+                .orElseThrow(() -> new NotFoundException("Problem not found: " + problemId));
+        if (problem.isDeleted()) {
             throw new NotFoundException("Problem not found: " + problemId);
         }
         return testCaseRepository.findByProblemId(problemId).stream()
@@ -62,6 +67,9 @@ public class AdminTestCaseService {
     public void uploadCSV(Long problemId, org.springframework.web.multipart.MultipartFile file) throws Exception {
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> new NotFoundException("Problem not found: " + problemId));
+        if (problem.isDeleted()) {
+            throw new NotFoundException("Problem not found: " + problemId);
+        }
 
         String content = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
         String[] lines = content.split("\n");
@@ -141,5 +149,18 @@ public class AdminTestCaseService {
                 .expectedOutput(testCase.getExpectedOutput())
                 .isSample(testCase.isSample())
                 .build();
+    }
+
+    @Transactional
+    public void update(Long id, CreateTestCaseRequest request) {
+        TestCase testCase = testCaseRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Test case not found: " + id));
+        if (request.getExpectedOutput() == null || request.getExpectedOutput().isBlank()) {
+            throw new BadRequestException("expectedOutput is required");
+        }
+        testCase.setStdin(request.getStdin());
+        testCase.setExpectedOutput(request.getExpectedOutput());
+        testCase.setSample(request.isSample());
+        testCaseRepository.save(testCase);
     }
 }

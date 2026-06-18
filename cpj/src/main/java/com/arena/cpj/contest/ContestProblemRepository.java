@@ -19,4 +19,8 @@ public interface ContestProblemRepository extends JpaRepository<ContestProblem, 
     java.util.Optional<ContestProblem> findByIdContestIdAndIdProblemId(Long contestId, Long problemId);
 
     void deleteByIdContestId(Long contestId);
+
+    boolean existsByIdProblemId(Long problemId);
+
+    List<ContestProblem> findByIdProblemId(Long problemId);
 }

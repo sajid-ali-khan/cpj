@@ -1,0 +1,1 @@
+ALTER TABLE problems ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT false;

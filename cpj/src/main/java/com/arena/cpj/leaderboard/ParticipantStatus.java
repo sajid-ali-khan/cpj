@@ -1,7 +1,8 @@
 package com.arena.cpj.leaderboard;
 
 public enum ParticipantStatus {
-    NOT_STARTED,
+    NOT_REGISTERED,
+    REGISTERED,
     WRITING,
     FINISHED
 }

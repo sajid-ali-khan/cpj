@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Instant;
-import java.util.List;
 
 @Getter
 @Builder
@@ -17,5 +16,5 @@ public class ContestResponse {
     private final Instant startTime;
     private final Integer durationMins;
     private final ContestPhase phase;
-    private final List<ContestProblemResponse> problems;
+    private final Integer problemCount;
 }

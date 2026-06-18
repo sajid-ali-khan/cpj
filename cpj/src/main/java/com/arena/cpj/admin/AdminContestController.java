@@ -1,5 +1,6 @@
 package com.arena.cpj.admin;
 
+import com.arena.cpj.admin.dto.ContestDetailResponse;
 import com.arena.cpj.admin.dto.ContestResponse;
 import com.arena.cpj.admin.dto.CreateContestRequest;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,7 @@ public class AdminContestController {
     private final AdminContestService adminContestService;
 
     @PostMapping
-    public ContestResponse create(@RequestBody CreateContestRequest request) {
+    public ContestDetailResponse create(@RequestBody CreateContestRequest request) {
         return adminContestService.create(request);
     }
 
@@ -25,22 +26,22 @@ public class AdminContestController {
     }
 
     @GetMapping("/{id}")
-    public ContestResponse get(@PathVariable Long id) {
+    public ContestDetailResponse get(@PathVariable Long id) {
         return adminContestService.get(id);
     }
 
     @PostMapping("/{id}/start")
-    public ContestResponse start(@PathVariable Long id) {
+    public ContestDetailResponse start(@PathVariable Long id) {
         return adminContestService.start(id);
     }
 
     @PostMapping("/{id}/end")
-    public ContestResponse end(@PathVariable Long id) {
+    public ContestDetailResponse end(@PathVariable Long id) {
         return adminContestService.end(id);
     }
 
     @PutMapping("/{id}")
-    public ContestResponse update(@PathVariable Long id, @RequestBody CreateContestRequest request) {
+    public ContestDetailResponse update(@PathVariable Long id, @RequestBody CreateContestRequest request) {
         return adminContestService.update(id, request);
     }
 

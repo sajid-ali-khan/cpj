@@ -14,6 +14,7 @@ import com.arena.cpj.leaderboard.Leaderboard;
 import com.arena.cpj.leaderboard.LeaderboardRepository;
 import com.arena.cpj.leaderboard.LeaderboardService;
 import com.arena.cpj.leaderboard.ParticipantStatus;
+import com.arena.cpj.leaderboard.dto.LeaderboardEntryDto;
 import com.arena.cpj.event.SseService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,16 @@ public class ContestController {
     @GetMapping("/current")
     public List<ContestSummaryResponse> getCurrent() {
         return contestService.getCurrentContest();
+    }
+
+    @GetMapping("/{contestId}")
+    public ContestSummaryResponse getContest(@PathVariable Long contestId) {
+        return contestService.getContest(contestId);
+    }
+
+    @GetMapping("/{contestId}/leaderboard")
+    public List<LeaderboardEntryDto> getLeaderboard(@PathVariable Long contestId) {
+        return leaderboardService.getLeaderboard(contestId);
     }
 
     @GetMapping

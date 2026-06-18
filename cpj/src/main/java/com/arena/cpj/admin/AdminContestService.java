@@ -24,7 +24,7 @@ public class AdminContestService {
     private final com.arena.cpj.submission.SubmissionRepository submissionRepository;
 
     @Transactional
-    public ContestResponse create(CreateContestRequest request) {
+    public ContestDetailResponse create(CreateContestRequest request) {
         validate(request);
 
         int problemCount = request.getProblems().size();
@@ -46,7 +46,7 @@ public class AdminContestService {
             addProblemToContest(contest, problemRequest);
         }
 
-        return toResponse(contest);
+        return toDetailResponse(contest);
     }
 
     @Transactional
@@ -57,17 +57,17 @@ public class AdminContestService {
     }
 
     @Transactional(readOnly = true)
-    public ContestResponse get(Long id) {
-        return toResponse(findContest(id));
+    public ContestDetailResponse get(Long id) {
+        return toDetailResponse(findContest(id));
     }
 
     @Transactional
-    public ContestResponse start(Long id) {
+    public ContestDetailResponse start(Long id) {
         throw new BadRequestException("Manual starting is disabled. Contests start automatically at their scheduled time.");
     }
 
     @Transactional
-    public ContestResponse end(Long id) {
+    public ContestDetailResponse end(Long id) {
         Contest contest = findContest(id);
         Instant now = Instant.now();
         
@@ -78,7 +78,7 @@ public class AdminContestService {
         int elapsedMins = (int) java.time.Duration.between(contest.getStartTime(), now).toMinutes();
         contest.setDurationMins(Math.max(0, elapsedMins));
         contestRepository.save(contest);
-        return toResponse(contest);
+        return toDetailResponse(contest);
     }
 
     private void addProblemToContest(Contest contest, ContestProblemRequest request) {
@@ -94,6 +94,9 @@ public class AdminContestService {
 
         Problem problem = problemRepository.findById(request.getProblemId())
                 .orElseThrow(() -> new NotFoundException("Problem not found: " + request.getProblemId()));
+        if (problem.isDeleted()) {
+            throw new NotFoundException("Problem not found: " + request.getProblemId());
+        }
 
         ContestProblemId key = new ContestProblemId(contest.getId(), problem.getId());
         if (contestProblemRepository.existsById(key)) {
@@ -131,6 +134,18 @@ public class AdminContestService {
     }
 
     private ContestResponse toResponse(Contest contest) {
+        return ContestResponse.builder()
+                .id(contest.getId())
+                .title(contest.getTitle())
+                .description(contest.getDescription())
+                .startTime(contest.getStartTime())
+                .durationMins(contest.getDurationMins())
+                .phase(contest.getPhase(Instant.now()))
+                .problemCount(contest.getProblemCount())
+                .build();
+    }
+
+    private ContestDetailResponse toDetailResponse(Contest contest) {
         List<ContestProblemResponse> problems = contestProblemRepository
                 .findByIdContestIdOrderByDisplayOrderAsc(contest.getId())
                 .stream()
@@ -143,19 +158,14 @@ public class AdminContestService {
                         .build())
                 .toList();
 
-        return ContestResponse.builder()
-                .id(contest.getId())
-                .title(contest.getTitle())
-                .description(contest.getDescription())
-                .startTime(contest.getStartTime())
-                .durationMins(contest.getDurationMins())
-                .phase(contest.getPhase(Instant.now()))
+        return ContestDetailResponse.builder()
+                .contest(toResponse(contest))
                 .problems(problems)
                 .build();
     }
 
     @Transactional
-    public ContestResponse update(Long id, CreateContestRequest request) {
+    public ContestDetailResponse update(Long id, CreateContestRequest request) {
         validate(request);
         Contest contest = findContest(id);
 
@@ -204,7 +214,7 @@ public class AdminContestService {
             addProblemToContest(contest, problemRequest);
         }
 
-        return toResponse(contest);
+        return toDetailResponse(contest);
     }
 
     @Transactional(readOnly = true)

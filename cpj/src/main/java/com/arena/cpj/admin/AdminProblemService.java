@@ -9,10 +9,16 @@ import com.arena.cpj.problem.Problem;
 import com.arena.cpj.problem.ProblemRepository;
 import com.arena.cpj.problem.TestCase;
 import com.arena.cpj.problem.TestCaseRepository;
+import com.arena.cpj.contest.Contest;
+import com.arena.cpj.contest.ContestPhase;
+import com.arena.cpj.contest.ContestProblem;
+import com.arena.cpj.contest.ContestProblemRepository;
+import com.arena.cpj.contest.ContestRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -21,6 +27,8 @@ public class AdminProblemService {
 
     private final ProblemRepository problemRepository;
     private final TestCaseRepository testCaseRepository;
+    private final ContestProblemRepository contestProblemRepository;
+    private final ContestRepository contestRepository;
 
     @Transactional
     public ProblemResponse create(CreateProblemRequest request) {
@@ -39,9 +47,40 @@ public class AdminProblemService {
         return toResponse(problemRepository.save(problem));
     }
 
+    @Transactional
+    public void delete(Long id, boolean force) {
+        Problem problem = findProblem(id);
+
+        List<ContestProblem> associations = contestProblemRepository.findByIdProblemId(id);
+        List<ContestProblem> upcomingAssociations = associations.stream()
+                .filter(cp -> cp.getContest().getPhase(Instant.now()) == ContestPhase.UPCOMING)
+                .toList();
+
+        if (!upcomingAssociations.isEmpty()) {
+            if (!force) {
+                String contestTitles = upcomingAssociations.stream()
+                        .map(cp -> cp.getContest().getTitle())
+                        .collect(java.util.stream.Collectors.joining(", "));
+                throw new BadRequestException("This problem is part of upcoming contests: " + contestTitles + 
+                        ". Deleting it will automatically remove it from these contests.");
+            } else {
+                for (ContestProblem cp : upcomingAssociations) {
+                    Contest contest = cp.getContest();
+                    contest.setProblemCount(Math.max(0, contest.getProblemCount() - 1));
+                    contest.setMaxScore(Math.max(0, contest.getMaxScore() - cp.getPoints()));
+                    contestRepository.save(contest);
+                    contestProblemRepository.delete(cp);
+                }
+            }
+        }
+
+        problem.setDeleted(true);
+        problemRepository.save(problem);
+    }
+
     @Transactional(readOnly = true)
     public List<ProblemResponse> list() {
-        return problemRepository.findAllByOrderByIdDesc().stream()
+        return problemRepository.findAllByDeletedFalseOrderByIdAsc().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -52,8 +91,12 @@ public class AdminProblemService {
     }
 
     private Problem findProblem(Long id) {
-        return problemRepository.findById(id)
+        Problem problem = problemRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Problem not found: " + id));
+        if (problem.isDeleted()) {
+            throw new NotFoundException("Problem not found: " + id);
+        }
+        return problem;
     }
 
     private void validate(CreateProblemRequest request) {

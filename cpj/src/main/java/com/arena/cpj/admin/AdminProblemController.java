@@ -19,6 +19,11 @@ public class AdminProblemController {
         return adminProblemService.create(request);
     }
 
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id, @RequestParam(required = false, defaultValue = "false") boolean force) {
+        adminProblemService.delete(id, force);
+    }
+
     @GetMapping
     public List<ProblemResponse> list() {
         return adminProblemService.list();

@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
+
 public class AdminTestCaseController {
 
     private final AdminTestCaseService adminTestCaseService;
@@ -17,6 +18,12 @@ public class AdminTestCaseController {
     public TestCaseResponse create(@PathVariable Long problemId,
                                    @RequestBody CreateTestCaseRequest request) {
         return adminTestCaseService.create(problemId, request);
+    }
+
+    @PutMapping("/api/admin/test-cases/{id}")
+    public void update(@PathVariable Long id,
+                                   @RequestBody CreateTestCaseRequest request) {
+        adminTestCaseService.update(id, request);
     }
 
     @PostMapping("/api/admin/problems/{problemId}/test-cases/csv")
@@ -34,4 +41,6 @@ public class AdminTestCaseController {
     public void delete(@PathVariable Long id) {
         adminTestCaseService.delete(id);
     }
+
+
 }

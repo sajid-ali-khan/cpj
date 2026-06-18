@@ -63,7 +63,7 @@ public class ContestService {
             if (entry.getStatus() == ParticipantStatus.FINISHED) {
                 throw new ForbiddenException("You have already submitted this contest");
             }
-            if (entry.getStatus() == ParticipantStatus.NOT_STARTED) {
+            if (entry.getStatus() == ParticipantStatus.REGISTERED) {
                 entry.setStatus(ParticipantStatus.WRITING);
                 leaderboardRepository.save(entry);
                 sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
@@ -153,5 +153,11 @@ public class ContestService {
             // Broadcast the new leaderboard list via SSE
             sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
         }
+    }
+
+    public ContestSummaryResponse getContest(Long contestId) {
+        Contest contest = contestRepository.findById(contestId)
+                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
+        return toSummary(contest);
     }
 }

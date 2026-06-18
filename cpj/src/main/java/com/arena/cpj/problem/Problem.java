@@ -38,4 +38,8 @@ public class Problem {
 
     @Column(name = "output_structure", columnDefinition = "TEXT")
     private String outputStructure;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
 }
