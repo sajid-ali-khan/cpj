@@ -26,3 +26,7 @@
 .csv-upload-box { margin-bottom: 20px; border: 1px dashed var(--border-color); padding: 15px; text-align: center; background-color: #0d1117; }
 .csv-input { font-size: 13px; }
 .import-progress-box { font-family: monospace; font-size: 12px; padding: 8px 12px; margin-bottom: 20px; }
+
+.modal-confirm { width: 320px; text-align: center; }
+.confirm-text { font-size: 13px; margin: 15px 0; color: var(--text-main); }
+.z-max { z-index: 1000 !important; }

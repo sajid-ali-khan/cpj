@@ -33,6 +33,9 @@ public class RollNoAuthInterceptor implements HandlerInterceptor {
         String resolvedToken = token.trim();
         User user = userRepository.findByActiveSessionToken(resolvedToken)
                 .orElseThrow(() -> new UnauthorizedException("Session invalid or expired. Please log in again."));
+        if (user.isDeleted()) {
+            throw new UnauthorizedException("Session invalid or expired. Please log in again.");
+        }
         UserContext.set(user);
         return true;
     }

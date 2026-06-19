@@ -20,6 +20,10 @@ export class ContestsComponent implements OnInit {
   problems: any[] = [];
   showAddModal = false;
 
+  // Contest Detail Modal State
+  showDetailModal = false;
+  selectedContestDetail: any = null;
+
   // Pagination
   pageSize = 10;
   currentPage = 1;
@@ -116,6 +120,31 @@ export class ContestsComponent implements OnInit {
       },
       error: (err) => alert(err.error?.error || 'Failed to create contest')
     });
+  }
+
+  viewContestDetail(contestId: number): void {
+    this.apiService.getAdminContest(contestId).subscribe({
+      next: (data) => {
+        this.selectedContestDetail = data;
+        this.showDetailModal = true;
+      },
+      error: (err) => alert(err.error?.error || 'Failed to retrieve contest details')
+    });
+  }
+
+  startContest(contestId: number): void {
+    if (confirm('Are you sure you want to start this contest immediately? This will transition its state to LIVE.')) {
+      this.apiService.startContest(contestId).subscribe({
+        next: () => {
+          this.loadData();
+          if (this.showDetailModal && this.selectedContestDetail?.contest?.id === contestId) {
+            this.viewContestDetail(contestId);
+          }
+          alert('Contest started successfully.');
+        },
+        error: (err) => alert(err.error?.error || 'Failed to start contest')
+      });
+    }
   }
 
   deleteContest(contestId: number): void {

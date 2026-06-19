@@ -73,18 +73,49 @@
             </thead>
             <tbody>
               @for (row of filteredLeaderboard; track row.rollNo; let idx = $index) {
-                <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 'transparent'">
-                  <td class="rank-cell">#{{ idx + 1 }}</td>
+                <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 'transparent'"
+                    (click)="row.problems && row.problems.length > 0 && (row.expanded = !row.expanded)"
+                    [style.cursor]="row.problems && row.problems.length > 0 ? 'pointer' : 'default'">
+                  <td class="rank-cell">
+                    @if (row.problems && row.problems.length > 0) {
+                      <span style="display: inline-block; margin-right: 6px; transition: transform 0.2s; font-size: 10px; color: var(--text-muted);"
+                            [style.transform]="row.expanded ? 'rotate(90deg)' : 'none'">▶</span>
+                    }
+                    #{{ idx + 1 }}
+                  </td>
                   <td>
                     <strong class="name-cell">{{ row.name }}</strong>
+                    @if (row.deleted) { <span style="color: #8b949e; font-weight: bold; font-size: 10px; margin-left: 8px; border: 1px solid rgba(139,148,158,0.3); padding: 1px 4px; border-radius: 4px;">DELETED</span> }
                     @if (row.violations >= 3) { <span style="color: #f85149; font-weight: bold; font-size: 10px; margin-left: 8px; border: 1px solid rgba(248,81,73,0.3); padding: 1px 4px; border-radius: 4px;">LOCKED</span> }
                   </td>
                   <td class="roll-cell">{{ row.rollNo }}</td>
                   <td class="score-cell">{{ row.score }}</td>
                   <td class="roll-cell" style="text-align: center;">{{ row.violations }} / 3</td>
                   <td class="time-cell" style="text-align: center;">{{ row.lastAcTime ? (row.lastAcTime | date:'HH:mm:ss') : '—' }}</td>
-                  <td style="text-align: right;"><button (click)="resetStudentViolations(row.rollNo)" class="btn btn-small" [disabled]="row.violations === 0" style="padding: 2px 6px; font-size: 11px;">Reset Warn</button></td>
+                  <td style="text-align: right;"><button (click)="resetStudentViolations(row.rollNo); $event.stopPropagation()" class="btn btn-small" [disabled]="row.violations === 0" style="padding: 2px 6px; font-size: 11px;">Reset Warn</button></td>
                 </tr>
+                @if (row.expanded && row.problems && row.problems.length > 0) {
+                  <tr style="background: rgba(255, 255, 255, 0.02);">
+                    <td colspan="7" style="padding: 12px 24px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px solid var(--border-color);">
+                      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        @for (prob of row.problems; track prob.title) {
+                          <div style="background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; margin-bottom: 4px;">
+                              <span style="font-weight: bold; color: var(--text-bright); font-size: 13px;">{{ prob.title }}</span>
+                              <span style="font-size: 10px; font-weight: bold; color: #56d364; background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.2); padding: 1px 6px; border-radius: 10px;">
+                                {{ prob.verdict }}
+                              </span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                              <span>Score: <strong style="color: var(--text-bright);">{{ prob.score }}/{{ prob.maxScore }}</strong></span>
+                              <span>Time: <strong style="color: var(--text-bright);">{{ prob.time }}</strong></span>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>

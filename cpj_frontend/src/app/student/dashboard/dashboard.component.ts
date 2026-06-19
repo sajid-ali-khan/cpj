@@ -26,6 +26,10 @@ export class DashboardComponent implements OnInit {
   leaderboardContestName = '';
   leaderboardData: any[] = [];
 
+  // Contest Details Modal State
+  showContestDetails = false;
+  selectedContestDetails: any = null;
+
   constructor(
     private apiService: ApiService,
     private authService: AuthService,
@@ -80,6 +84,16 @@ export class DashboardComponent implements OnInit {
         this.showLeaderboard = true;
       },
       error: (err) => alert(err.error?.error || 'Failed to retrieve leaderboard')
+    });
+  }
+
+  viewContestDetails(contestId: number): void {
+    this.apiService.getContest(contestId).subscribe({
+      next: (data) => {
+        this.selectedContestDetails = data;
+        this.showContestDetails = true;
+      },
+      error: (err) => alert(err.error?.error || 'Failed to retrieve contest details')
     });
   }
 

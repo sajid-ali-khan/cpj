@@ -25,6 +25,9 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
      */
     List<Submission> findByUserIdAndContestIdOrderBySubmittedAtDesc(Long userId, Long contestId);
 
+    List<Submission> findByUserIdAndContestIdAndVerdictOrderBySubmittedAtAsc(
+            Long userId, Long contestId, Verdict verdict);
+
     /**
      * Get all submissions for a specific contest ordered by time descending.
      */

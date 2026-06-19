@@ -39,6 +39,10 @@ public class AuthController {
         User user = userRepository.findByRollNo(rollNo)
                 .orElseThrow(() -> new UnauthorizedException("User not found for roll number: " + rollNo));
 
+        if (user.isDeleted()) {
+            throw new UnauthorizedException("User not found for roll number: " + rollNo);
+        }
+
         if (user.getRole() != UserRole.STUDENT) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Access denied. Student role required."));
@@ -60,6 +64,10 @@ public class AuthController {
         String rollNo = request.getRollNumber().trim();
         User user = userRepository.findByRollNo(rollNo)
                 .orElseThrow(() -> new UnauthorizedException("User not found for roll number: " + rollNo));
+
+        if (user.isDeleted()) {
+            throw new UnauthorizedException("User not found for roll number: " + rollNo);
+        }
 
         if (user.getRole() != UserRole.STUDENT) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
@@ -97,6 +105,10 @@ public class AuthController {
         String username = request.getUsername().trim();
         User user = userRepository.findByRollNo(username)
                 .orElseThrow(() -> new UnauthorizedException("Admin user not found: " + username));
+
+        if (user.isDeleted()) {
+            throw new UnauthorizedException("Admin user not found: " + username);
+        }
 
         if (user.getRole() != UserRole.ADMIN) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

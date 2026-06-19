@@ -25,6 +25,21 @@ export class ProblemsComponent implements OnInit {
   showTestCases = false;
   step = 1;
 
+  // Pagination & Search
+  searchQuery = '';
+  pageSize = 10;
+  currentPage = 1;
+
+  // New Details Modal State
+  selectedProblemDetail: any = null;
+
+  // Edit Test Case Modal State
+  showEditTestCase = false;
+  editingTestCaseId: number | null = null;
+  editTcInput = '';
+  editTcOutput = '';
+  editTcIsSample = false;
+
   // Forms & Modals
   title = '';
   description = '';
@@ -167,7 +182,91 @@ export class ProblemsComponent implements OnInit {
     });
   }
 
+  get filteredProblems(): any[] {
+    if (!this.searchQuery) return this.problems;
+    const q = this.searchQuery.toLowerCase().trim();
+    return this.problems.filter(p => p.title.toLowerCase().includes(q));
+  }
 
+  get paginatedProblems(): any[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredProblems.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.filteredProblems.length / this.pageSize) || 1;
+  }
+
+  prevPage(): void {
+    if (this.currentPage > 1) this.currentPage--;
+  }
+
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) this.currentPage++;
+  }
+
+  viewProblemDetail(id: number): void {
+    this.selectedProblemId = id;
+    this.apiService.getAdminProblem(id).subscribe({
+      next: (data) => {
+        this.selectedProblemDetail = data;
+        this.selectedProblemTitle = data.title;
+        this.loadTestCasesForCurrent();
+      },
+      error: (err) => this.showAlert(err.error?.error || 'Failed to retrieve problem details')
+    });
+  }
+
+  closeProblemDetail(): void {
+    this.selectedProblemDetail = null;
+    this.selectedProblemId = null;
+    this.selectedProblemTitle = '';
+    this.testCases = [];
+  }
+
+  deleteProblem(id: number): void {
+    this.showConfirm('Are you sure you want to delete this problem? By default this performs a soft-delete.', () => {
+      this.apiService.deleteProblem(id, false).subscribe({
+        next: () => {
+          this.loadProblems();
+          this.showAlert('Problem soft-deleted successfully.');
+        },
+        error: (err) => this.showAlert(err.error?.error || 'Failed to delete problem')
+      });
+    });
+  }
+
+  openEditTestCase(tc: any): void {
+    this.editingTestCaseId = tc.id;
+    this.editTcInput = tc.stdin;
+    this.editTcOutput = tc.expectedOutput;
+    this.editTcIsSample = tc.isSample;
+    this.showEditTestCase = true;
+  }
+
+  saveEditedTestCase(): void {
+    if (this.editingTestCaseId === null) return;
+    const body = {
+      stdin: this.editTcInput,
+      expectedOutput: this.editTcOutput,
+      isSample: this.editTcIsSample
+    };
+    this.apiService.updateTestCase(this.editingTestCaseId, body).subscribe({
+      next: () => {
+        this.showEditTestCase = false;
+        this.editingTestCaseId = null;
+        this.editTcInput = '';
+        this.editTcOutput = '';
+        this.editTcIsSample = false;
+        this.loadTestCasesForCurrent();
+        if (this.showTestCases) {
+          this.viewTestCases(this.selectedProblemId!, this.selectedProblemTitle);
+        }
+        this.showAlert('Test case updated successfully.');
+      },
+      error: (err) => this.showAlert(err.error?.error || 'Failed to update test case')
+    });
+  }
 
   private resetProblemForm(): void {
     this.title = ''; this.description = ''; this.constraints = '';

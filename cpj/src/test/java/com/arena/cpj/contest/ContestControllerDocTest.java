@@ -123,6 +123,16 @@ public class ContestControllerDocTest {
                 .totalQuestions(5)
                 .maxScore(500)
                 .violations(0)
+                .deleted(false)
+                .problems(List.of(
+                        LeaderboardEntryDto.SolvedProblemDto.builder()
+                                .title("Two Sum")
+                                .verdict("Accepted")
+                                .score(100)
+                                .maxScore(100)
+                                .time("10ms")
+                                .build()
+                ))
                 .build();
 
         when(leaderboardService.getLeaderboard(1L)).thenReturn(List.of(entry));
@@ -147,7 +157,14 @@ public class ContestControllerDocTest {
                                 fieldWithPath("[].solvedCount").description("Number of questions solved."),
                                 fieldWithPath("[].totalQuestions").description("Total number of questions in the contest."),
                                 fieldWithPath("[].maxScore").description("Maximum possible score in the contest."),
-                                fieldWithPath("[].violations").description("Number of tab-switching violations recorded.")
+                                fieldWithPath("[].violations").description("Number of tab-switching violations recorded."),
+                                fieldWithPath("[].deleted").description("Indicates whether the user has been soft-deleted."),
+                                fieldWithPath("[].problems").description("List of solved problems by the participant."),
+                                fieldWithPath("[].problems[].title").description("The title of the problem."),
+                                fieldWithPath("[].problems[].verdict").description("The verdict of the submission (e.g. Accepted)."),
+                                fieldWithPath("[].problems[].score").description("The score obtained for this problem."),
+                                fieldWithPath("[].problems[].maxScore").description("The maximum possible score for this problem."),
+                                fieldWithPath("[].problems[].time").description("Execution time of the submission (e.g. 10ms).")
                         )
                 ));
     }

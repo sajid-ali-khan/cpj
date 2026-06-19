@@ -22,6 +22,7 @@ public class LeaderboardService {
     private final LeaderboardRepository leaderboardRepository;
     private final ContestProblemRepository contestProblemRepository;
     private final SseService sseService;
+    private final com.arena.cpj.submission.SubmissionRepository submissionRepository;
 
     /**
      * Sole entry point for leaderboard writes. Called from the submission callback
@@ -66,15 +67,48 @@ public class LeaderboardService {
         List<Leaderboard> rows = leaderboardRepository
                 .findByContestIdOrderByScoreDescLastAcTimeAsc(contestId);
 
+        List<ContestProblem> contestProblems = contestProblemRepository
+                .findByIdContestIdOrderByDisplayOrderAsc(contestId);
+        java.util.Map<Long, Integer> problemPoints = contestProblems.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        cp -> cp.getProblem().getId(),
+                        ContestProblem::getPoints
+                ));
+
         return java.util.stream.IntStream.range(0, rows.size())
                 .mapToObj(i -> {
                     Leaderboard row = rows.get(i);
                     Contest contest = row.getContest();
+                    User user = row.getUser();
+
+                    List<com.arena.cpj.submission.Submission> acSubs = submissionRepository
+                            .findByUserIdAndContestIdAndVerdictOrderBySubmittedAtAsc(
+                                    user.getId(), contestId, com.arena.cpj.submission.Verdict.ACCEPTED);
+
+                    java.util.Map<Long, com.arena.cpj.submission.Submission> firstAcPerProblem = new java.util.LinkedHashMap<>();
+                    for (com.arena.cpj.submission.Submission sub : acSubs) {
+                        firstAcPerProblem.putIfAbsent(sub.getProblem().getId(), sub);
+                    }
+
+                    List<LeaderboardEntryDto.SolvedProblemDto> solvedProblems = firstAcPerProblem.values().stream()
+                            .map(sub -> {
+                                int pts = problemPoints.getOrDefault(sub.getProblem().getId(), 100);
+                                String timeStr = sub.getTimeMs() != null ? sub.getTimeMs() + "ms" : "0ms";
+                                return LeaderboardEntryDto.SolvedProblemDto.builder()
+                                        .title(sub.getProblem().getTitle())
+                                        .verdict("Accepted")
+                                        .score(pts)
+                                        .maxScore(pts)
+                                        .time(timeStr)
+                                        .build();
+                            })
+                            .toList();
+
                     return LeaderboardEntryDto.builder()
                             .rank(i + 1)
-                            .userId(row.getUser().getId())
-                            .name(row.getUser().getName())
-                            .rollNo(row.getUser().getRollNo())
+                            .userId(user.getId())
+                            .name(user.getName())
+                            .rollNo(user.getRollNo())
                             .score(row.getScore())
                             .lastAcTime(row.getLastAcTime())
                             .status(row.getStatus().name())
@@ -82,6 +116,8 @@ public class LeaderboardService {
                             .totalQuestions(contest.getProblemCount())
                             .maxScore(contest.getMaxScore())
                             .violations(row.getViolations())
+                            .deleted(user.isDeleted())
+                            .problems(solvedProblems)
                             .build();
                 })
                 .toList();

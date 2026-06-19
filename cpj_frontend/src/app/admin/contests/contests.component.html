@@ -31,17 +31,20 @@
         @for (contest of paginatedContests; track contest.id) {
           <tr>
             <td style="font-family: monospace; font-weight: bold;">#{{ contest.id }}</td>
-            <td><strong style="color: var(--text-bright);">{{ contest.title }}</strong></td>
+            <td><strong style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="viewContestDetail(contest.id)">{{ contest.title }}</strong></td>
             <td>{{ contest.startTime | date:'medium' }}</td>
             <td>{{ contest.durationMins }} mins</td>
-            <td>{{ contest.problems?.length || 0 }} questions</td>
+            <td>{{ contest.problemIds?.length || 0 }} questions</td>
             <td>
               <span class="status-badge" [style.color]="contest.phase === 'LIVE' ? '#56d364' : contest.phase === 'UPCOMING' ? '#58a6ff' : '#8b949e'">
                 {{ contest.phase }}
               </span>
             </td>
             <td>
-              <div class="actions-cell">
+              <div class="actions-cell" style="display: flex; gap: 6px;">
+                @if (contest.phase === 'UPCOMING') {
+                  <button (click)="startContest(contest.id)" class="btn btn-primary btn-small">Start</button>
+                }
                 <button (click)="deleteContest(contest.id)" class="btn btn-danger btn-small">Delete</button>
               </div>
             </td>
@@ -49,7 +52,7 @@
         }
       </tbody>
     </table>
-
+ 
     <!-- Pagination Controls -->
     <div class="pagination-controls">
       <span class="pagination-info">Page {{ currentPage }} of {{ totalPages }} (Total: {{ contests.length }})</span>
@@ -60,23 +63,23 @@
     </div>
   }
 </div>
-
+ 
 @if (showAddModal) {
   <div class="modal-overlay">
     <div class="modal-content modal-contest">
       <h3>Create Contest</h3>
       <p class="modal-subtitle">Configure a new contest session.</p>
-
+ 
       <div class="form-group">
         <label class="form-label">Contest Title *</label>
         <input type="text" [(ngModel)]="title" placeholder="e.g. Algorithmic Sprint 2026" />
       </div>
-
+ 
       <div class="form-group">
         <label class="form-label">Description</label>
         <textarea [(ngModel)]="description" placeholder="Optional details..." class="form-textarea"></textarea>
       </div>
-
+ 
       <div class="form-row">
         <div class="form-col-flex">
           <label class="form-label">Start Time *</label>
@@ -87,7 +90,7 @@
           <input type="number" [(ngModel)]="durationMins" />
         </div>
       </div>
-
+ 
       <div class="form-group">
         <label class="form-label">Select Questions *</label>
         <div class="problems-checklist">
@@ -103,7 +106,7 @@
           }
         </div>
       </div>
-
+ 
       @if (selectedProblemIds.length > 0) {
         <div class="config-section">
           <span class="config-title">Configure Allocated Question Details:</span>
@@ -122,10 +125,76 @@
           </div>
         </div>
       }
-
+ 
       <div class="modal-actions">
         <button (click)="showAddModal = false" class="btn">Cancel</button>
         <button (click)="saveContest()" class="btn btn-success" [disabled]="!title || !startTime || selectedProblemIds.length === 0">Save Contest</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Admin Contest Details Overlay -->
+@if (showDetailModal) {
+  <div class="modal-overlay">
+    <div class="modal-content" style="width: 550px; padding: 20px; border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: var(--text-bright);">Contest #{{ selectedContestDetail.contest.id }}: {{ selectedContestDetail.contest.title }}</h3>
+        <button (click)="showDetailModal = false" class="btn" style="padding: 2px 8px; font-size: 12px;">Close</button>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="font-weight: bold; color: var(--text-bright); display: block; margin-bottom: 4px;">Description:</label>
+        <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.4;">{{ selectedContestDetail.contest.description || 'No description provided.' }}</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+        <div>
+          <span style="font-size: 12px; color: var(--text-muted);">Start Time</span>
+          <div style="font-size: 14px; font-weight: bold; color: var(--text-bright); margin-top: 2px;">{{ selectedContestDetail.contest.startTime | date:'medium' }}</div>
+        </div>
+        <div>
+          <span style="font-size: 12px; color: var(--text-muted);">Duration</span>
+          <div style="font-size: 14px; font-weight: bold; color: var(--text-bright); margin-top: 2px;">{{ selectedContestDetail.contest.durationMins }} mins</div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div>
+          <label style="font-weight: bold; color: var(--text-bright); display: block; margin-bottom: 4px;">Status/Phase:</label>
+          <span class="status-badge" [style.color]="selectedContestDetail.contest.phase === 'LIVE' ? '#56d364' : selectedContestDetail.contest.phase === 'UPCOMING' ? '#58a6ff' : '#8b949e'" style="font-size: 13px; font-weight: bold;">
+            {{ selectedContestDetail.contest.phase }}
+          </span>
+        </div>
+        @if (selectedContestDetail.contest.phase === 'UPCOMING') {
+          <button (click)="startContest(selectedContestDetail.contest.id)" class="btn btn-primary" style="font-size: 13px;">Start Contest Now</button>
+        }
+      </div>
+
+      <div>
+        <label style="font-weight: bold; color: var(--text-bright); display: block; margin-bottom: 4px;">Assigned Problems Structure:</label>
+        @if (selectedContestDetail.problems?.length === 0) {
+          <div style="color: var(--text-muted); font-size: 13px;">No problems assigned.</div>
+        } @else {
+          <table style="width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 5px; border: 1px solid var(--border-color);">
+            <thead>
+              <tr style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);">
+                <th style="padding: 6px; text-align: left;">Order</th>
+                <th style="padding: 6px; text-align: left;">Title</th>
+                <th style="padding: 6px; text-align: right;">Points</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (prob of selectedContestDetail.problems; track prob.problemId) {
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 6px; font-weight: bold; font-family: monospace;">#{{ prob.displayOrder }}</td>
+                  <td style="padding: 6px; color: var(--text-bright);">#{{ prob.problemId }} - {{ prob.title }}</td>
+                  <td style="padding: 6px; text-align: right; font-weight: bold; color: #56d364;">{{ prob.points }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
       </div>
     </div>
   </div>

@@ -47,7 +47,7 @@ public class AdminUserService {
 
         org.springframework.data.domain.Page<User> userPage;
         if (query == null || query.isBlank()) {
-            userPage = userRepository.findAll(pageable);
+            userPage = userRepository.findByDeletedFalse(pageable);
         } else {
             userPage = userRepository.searchUsers(query.trim(), pageable);
         }
@@ -84,6 +84,9 @@ public class AdminUserService {
 
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new com.arena.cpj.common.NotFoundException("User not found with ID: " + id));
+        if (user.isDeleted()) {
+            throw new com.arena.cpj.common.NotFoundException("User not found with ID: " + id);
+        }
 
         String newRollNo = request.getRollNo().trim();
         userRepository.findByRollNo(newRollNo).ifPresent(existing -> {
@@ -112,9 +115,13 @@ public class AdminUserService {
 
     @Transactional
     public void delete(Long id) {
-        if (!userRepository.existsById(id)) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new com.arena.cpj.common.NotFoundException("User not found with ID: " + id));
+        if (user.isDeleted()) {
             throw new com.arena.cpj.common.NotFoundException("User not found with ID: " + id);
         }
-        userRepository.deleteById(id);
+        user.setDeleted(true);
+        user.setActiveSessionToken(null);
+        userRepository.save(user);
     }
 }

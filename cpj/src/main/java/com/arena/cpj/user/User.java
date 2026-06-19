@@ -36,6 +36,10 @@ public class User {
     @Builder.Default
     private UserRole role = UserRole.STUDENT;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private java.util.List<com.arena.cpj.submission.Submission> submissions;
 

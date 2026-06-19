@@ -39,6 +39,10 @@ public class StudentController {
         User user = userRepository.findByRollNo(rollNumber.trim())
                 .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNumber));
 
+        if (user.isDeleted()) {
+            throw new NotFoundException("User not found for roll number: " + rollNumber);
+        }
+
         List<com.arena.cpj.user.dto.StudentRegistrationDto> registrations = leaderboardRepository.findByUserId(user.getId()).stream()
                 .map(l -> com.arena.cpj.user.dto.StudentRegistrationDto.builder()
                         .contestId(l.getContest().getId())
@@ -62,6 +66,10 @@ public class StudentController {
 
         User user = userRepository.findByRollNo(rollNumber.trim())
                 .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNumber));
+
+        if (user.isDeleted()) {
+            throw new NotFoundException("User not found for roll number: " + rollNumber);
+        }
 
         List<Leaderboard> entries = leaderboardRepository.findByUserId(user.getId());
         for (Leaderboard entry : entries) {

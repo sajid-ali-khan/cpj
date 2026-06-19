@@ -33,7 +33,7 @@
           @for (contest of contests; track contest.id) {
             <tr>
               <td>
-                <strong style="color: var(--text-bright);">{{ contest.name }}</strong>
+                <strong style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="viewContestDetails(contest.id)">{{ contest.name }}</strong>
                 <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">{{ contest.description }}</p>
               </td>
               <td>{{ contest.startTime | date:'medium' }}</td>
@@ -59,7 +59,7 @@
                     } @else {
                       @if (getRegistrationStatus(contest.id) === 'FINISHED') {
                         @if (hasViolatedLimit(contest.id)) {
-                          <span style="color: #f85149; font-size: 13px; font-weight: bold; margin-right: 5px;">Ended</span>
+                           <span style="color: #f85149; font-size: 13px; font-weight: bold; margin-right: 5px;">Ended</span>
                         } @else {
                           <span style="color: var(--text-muted); font-size: 13px; font-weight: bold; margin-right: 5px;">Submitted</span>
                         }
@@ -105,19 +105,102 @@
           </thead>
           <tbody>
             @for (row of leaderboardData; track row.rollNo; let idx = $index) {
-              <tr [style.background-color]="row.rollNo === rollNo ? 'rgba(35, 134, 54, 0.1)' : 'transparent'">
-                <td style="font-weight: bold; font-family: monospace;">#{{ idx + 1 }}</td>
-                <td><strong style="color: var(--text-bright);">{{ row.name }}</strong></td>
+              <tr [style.background-color]="row.rollNo === rollNo ? 'rgba(35, 134, 54, 0.1)' : 'transparent'"
+                  (click)="row.problems && row.problems.length > 0 && (row.expanded = !row.expanded)"
+                  [style.cursor]="row.problems && row.problems.length > 0 ? 'pointer' : 'default'">
+                <td style="font-weight: bold; font-family: monospace;">
+                  @if (row.problems && row.problems.length > 0) {
+                    <span style="display: inline-block; margin-right: 6px; transition: transform 0.2s; font-size: 10px; color: var(--text-muted);"
+                          [style.transform]="row.expanded ? 'rotate(90deg)' : 'none'">▶</span>
+                  }
+                  #{{ idx + 1 }}
+                </td>
+                <td>
+                  <strong style="color: var(--text-bright);">{{ row.name }}</strong>
+                  @if (row.deleted) { <span style="color: #8b949e; font-weight: bold; font-size: 10px; margin-left: 8px; border: 1px solid rgba(139,148,158,0.3); padding: 1px 4px; border-radius: 4px;">DELETED</span> }
+                </td>
                 <td style="font-family: monospace;">{{ row.rollNo }}</td>
                 <td style="text-align: center; font-weight: bold; color: #56d364;">{{ row.score }}</td>
                 <td style="text-align: right; font-family: monospace; font-size: 12px; color: var(--text-muted);">
                   {{ row.lastAcTime ? (row.lastAcTime | date:'HH:mm:ss') : '—' }}
                 </td>
               </tr>
+              @if (row.expanded && row.problems && row.problems.length > 0) {
+                <tr style="background: rgba(255, 255, 255, 0.02);">
+                  <td colspan="5" style="padding: 12px 24px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px solid var(--border-color);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                      @for (prob of row.problems; track prob.title) {
+                        <div style="text-align: left; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;">
+                          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; margin-bottom: 4px;">
+                            <span style="font-weight: bold; color: var(--text-bright); font-size: 13px;">{{ prob.title }}</span>
+                            <span style="font-size: 10px; font-weight: bold; color: #56d364; background: rgba(56, 149, 253, 0.1); border: 1px solid rgba(56, 149, 253, 0.2); padding: 1px 6px; border-radius: 10px;">
+                              {{ prob.verdict }}
+                            </span>
+                          </div>
+                          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                            <span>Score: <strong style="color: var(--text-bright);">{{ prob.score }}/{{ prob.maxScore }}</strong></span>
+                            <span>Time: <strong style="color: var(--text-bright);">{{ prob.time }}</strong></span>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>
       }
+    </div>
+  </div>
+}
+
+<!-- Modal: Contest Details Overlay -->
+@if (showContestDetails) {
+  <div class="modal-overlay">
+    <div class="modal-content" style="width: 500px; padding: 20px; border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: var(--text-bright);">{{ selectedContestDetails.title }}</h3>
+        <button (click)="showContestDetails = false" class="btn" style="padding: 2px 8px; font-size: 12px;">Close</button>
+      </div>
+      
+      <div style="margin-bottom: 15px;">
+        <label style="font-weight: bold; color: var(--text-bright); display: block; margin-bottom: 4px;">Description:</label>
+        <p style="margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.4;">{{ selectedContestDetails.description || 'No description provided.' }}</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+        <div>
+          <span style="font-size: 12px; color: var(--text-muted);">Start Time</span>
+          <div style="font-size: 14px; font-weight: bold; color: var(--text-bright); margin-top: 2px;">{{ selectedContestDetails.startTime | date:'medium' }}</div>
+        </div>
+        <div>
+          <span style="font-size: 12px; color: var(--text-muted);">Duration</span>
+          <div style="font-size: 14px; font-weight: bold; color: var(--text-bright); margin-top: 2px;">{{ selectedContestDetails.durationMins }} mins</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="font-weight: bold; color: var(--text-bright); display: block; margin-bottom: 4px;">Contest Phase:</label>
+        <span class="status-badge" [style.color]="selectedContestDetails.phase === 'LIVE' ? '#56d364' : selectedContestDetails.phase === 'UPCOMING' ? '#58a6ff' : '#8b949e'" style="font-size: 13px; font-weight: bold;">
+          {{ selectedContestDetails.phase }}
+        </span>
+      </div>
+
+      <div>
+        <label style="font-weight: bold; color: var(--text-bright); display: block; margin-bottom: 4px;">Allocated Problem IDs:</label>
+        @if (selectedContestDetails.problemIds?.length === 0) {
+          <span style="font-size: 13px; color: var(--text-muted);">No problems assigned to this contest.</span>
+        } @else {
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px;">
+            @for (pId of selectedContestDetails.problemIds; track pId) {
+              <span style="background: rgba(88, 166, 255, 0.15); color: #58a6ff; font-family: monospace; font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(88, 166, 255, 0.3);">
+                #{{ pId }}
+              </span>
+            }
+          </div>
+        }
+      </div>
     </div>
   </div>
 }

@@ -131,3 +131,16 @@
     </div>
   </div>
 }
+
+@if (confirmConfig) {
+  <div class="modal-overlay z-max">
+    <div class="modal-content modal-confirm">
+      <h3>Confirm Action</h3>
+      <p class="confirm-text">{{ confirmConfig.msg }}</p>
+      <div class="modal-actions">
+        <button (click)="confirmConfig = null" class="btn">Cancel</button>
+        <button (click)="confirmConfig.onConfirm(); confirmConfig = null" class="btn btn-danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+}

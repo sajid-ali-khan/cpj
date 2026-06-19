@@ -15,9 +15,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByOrderByRollNoAsc();
 
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE " +
+    org.springframework.data.domain.Page<User> findByDeletedFalse(org.springframework.data.domain.Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.deleted = false AND (" +
             "LOWER(u.name) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
-            "LOWER(u.rollNo) LIKE LOWER(CONCAT('%', :query, '%'))")
+            "LOWER(u.rollNo) LIKE LOWER(CONCAT('%', :query, '%')))")
     org.springframework.data.domain.Page<User> searchUsers(
             @org.springframework.data.repository.query.Param("query") String query,
             org.springframework.data.domain.Pageable pageable);

@@ -1,28 +1,185 @@
-<div class="header-section">
-  <div><h2>Problem Repository</h2><p class="header-desc">Manage coding challenges and register test cases.</p></div>
-  <button (click)="showAddProblem = true" class="btn btn-success">Add Problem</button>
-</div>
+@if (!selectedProblemDetail) {
+  <!-- Problem Repository List View -->
+  <div class="header-section">
+    <div>
+      <h2>Problem Repository</h2>
+      <p class="header-desc">Manage coding challenges and register test cases.</p>
+    </div>
+    <button (click)="showAddProblem = true" class="btn btn-success">Add Problem</button>
+  </div>
 
-<div class="card card-table">
-  @if (problems.length === 0) {
-    <div class="empty-state">No problems available in the repository.</div>
-  } @else {
-    <table>
-      <thead><tr><th class="id-col">ID</th><th>Problem Title</th><th>Difficulty</th><th>Actions</th></tr></thead>
-      <tbody>
-        @for (prob of problems; track prob.id) {
+  <!-- Search and Filtering Section -->
+  <div class="card" style="padding: 15px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; border: 1px solid var(--border-color);">
+    <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 13px; color: var(--text-muted); font-weight: bold; text-transform: uppercase;">Search:</span>
+      <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="currentPage = 1" placeholder="Search problems by name..." style="flex: 1; font-size: 14px; padding: 6px 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 6px;" />
+    </div>
+  </div>
+
+  <div class="card card-table">
+    @if (filteredProblems.length === 0) {
+      <div class="empty-state">No matching problems available in the repository.</div>
+    } @else {
+      <table>
+        <thead>
           <tr>
-            <td class="id-val">#{{ prob.id }}</td>
-            <td><strong class="title-val">{{ prob.title }}</strong><p class="desc-preview">{{ prob.description }}</p></td>
-            <td><span class="difficulty-badge" [style.color]="prob.difficulty === 'HARD' ? '#da3633' : prob.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'">{{ prob.difficulty }}</span></td>
-            <td><button (click)="viewTestCases(prob.id, prob.title)" class="btn btn-small">Test Cases</button></td>
+            <th class="id-col">ID</th>
+            <th>Problem Title</th>
+            <th>Difficulty</th>
+            <th>Actions</th>
           </tr>
-        }
-      </tbody>
-    </table>
-  }
-</div>
+        </thead>
+        <tbody>
+          @for (prob of paginatedProblems; track prob.id) {
+            <tr>
+              <td class="id-val">#{{ prob.id }}</td>
+              <td>
+                <strong class="title-val" style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="viewProblemDetail(prob.id)">
+                  {{ prob.title }}
+                </strong>
+                <p class="desc-preview">{{ prob.description }}</p>
+              </td>
+              <td>
+                <span class="difficulty-badge" [style.color]="prob.difficulty === 'HARD' ? '#da3633' : prob.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'">
+                  {{ prob.difficulty }}
+                </span>
+              </td>
+              <td>
+                <button (click)="deleteProblem(prob.id)" class="btn btn-danger btn-small">Delete</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
 
+      <!-- Pagination Controls -->
+      <div class="pagination-controls" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-top: 1px solid var(--border-color);">
+        <span class="pagination-info" style="font-size: 13px; color: var(--text-muted);">
+          Page {{ currentPage }} of {{ totalPages }} (Total: {{ filteredProblems.length }})
+        </span>
+        <div class="pagination-btns" style="display: flex; gap: 8px;">
+          <button (click)="prevPage()" class="btn btn-small" [disabled]="currentPage === 1">Previous</button>
+          <button (click)="nextPage()" class="btn btn-small" [disabled]="currentPage === totalPages">Next</button>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <!-- Problem Repository Detail View (Separate Page View) -->
+  <div class="breadcrumb" style="font-size: 14px; margin-bottom: 20px; color: #8b949e; display: flex; align-items: center; gap: 6px;">
+    <span style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="closeProblemDetail()">Problem Repository</span>
+    <span>&gt;</span>
+    <span style="color: var(--text-bright); font-weight: bold;">{{ selectedProblemDetail.title }}</span>
+  </div>
+
+  <div class="detail-container" style="display: flex; gap: 20px; align-items: flex-start;">
+    <!-- Left Side: Problem Specifications -->
+    <div class="card" style="flex: 1.2; padding: 20px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; margin: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
+        <h2 style="margin: 0; color: var(--text-bright);">#{{ selectedProblemDetail.id }} - {{ selectedProblemDetail.title }}</h2>
+        <span class="difficulty-badge" [style.color]="selectedProblemDetail.difficulty === 'HARD' ? '#da3633' : selectedProblemDetail.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'" style="font-weight: bold; font-size: 14px;">
+          {{ selectedProblemDetail.difficulty }}
+        </span>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 15px;">Description</h4>
+        <p style="margin: 0; color: var(--text-main); font-size: 14px; line-height: 1.5; white-space: pre-wrap;">{{ selectedProblemDetail.description }}</p>
+      </div>
+
+      @if (selectedProblemDetail.constraints) {
+        <div style="margin-bottom: 20px;">
+          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 15px;">Constraints</h4>
+          <pre style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 13px; color: var(--text-bright); margin: 0; overflow-x: auto;">{{ selectedProblemDetail.constraints }}</pre>
+        </div>
+      }
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+        <div>
+          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 14px;">Input Format Structure</h4>
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.4; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">{{ selectedProblemDetail.inputStructure || '—' }}</div>
+        </div>
+        <div>
+          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 14px;">Output Format Structure</h4>
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.4; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">{{ selectedProblemDetail.outputStructure || '—' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Side: Test Cases Display (formatted like results panel) -->
+    <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; box-sizing: border-box;">
+      <!-- Add Test Case Card -->
+      <div class="card card-form" style="padding: 15px; margin: 0; border: 1px solid var(--border-color); border-radius: 6px;">
+        <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Add Test Case</h4>
+        <div class="card-form-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <div class="form-col" style="flex: 1;">
+            <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">Stdin Input</label>
+            <textarea [(ngModel)]="tcInput" placeholder="Stdin input..." style="width: 100%; box-sizing: border-box; height: 60px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; resize: none;"></textarea>
+          </div>
+          <div class="form-col" style="flex: 1;">
+            <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">Expected Output *</label>
+            <textarea [(ngModel)]="tcOutput" placeholder="Expected execution output..." style="width: 100%; box-sizing: border-box; height: 60px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; resize: none;"></textarea>
+          </div>
+        </div>
+        <div class="card-form-actions" style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="checkbox-container" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" />
+            <label for="tcIsSample" style="font-size: 12px; color: var(--text-main); cursor: pointer;">Is Sample Test Case</label>
+          </div>
+          <button (click)="addTestCase()" class="btn btn-success btn-add-tc" style="font-size: 12px; padding: 4px 10px;" [disabled]="!tcOutput">Add Testcase</button>
+        </div>
+      </div>
+
+      <!-- Configured Test Cases (formatted similarly to compilation results panel display) -->
+      <div class="card" style="padding: 15px; margin: 0; border: 1px solid var(--border-color); border-radius: 6px;">
+        <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Configured Test Cases</h4>
+        @if (testCases.length === 0) {
+          <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">No testcases loaded for this problem. Add one above.</div>
+        } @else {
+          <div style="overflow-x: auto; max-height: 380px;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.01);">
+                  <th style="padding: 6px 8px; text-align: left; width: 80px;">Type</th>
+                  <th style="padding: 6px 8px; text-align: left;">Stdin (Click to inspect)</th>
+                  <th style="padding: 6px 8px; text-align: left;">Expected (Click to inspect)</th>
+                  <th style="padding: 6px 8px; text-align: right; width: 120px;">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (tc of testCases; track tc.id) {
+                  <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 6px 8px;">
+                      <span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'" style="font-weight: bold; font-size: 11px;">
+                        {{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}
+                      </span>
+                    </td>
+                    <td class="mono-cell clickable font-mono text-xs" style="padding: 6px 8px; max-width: 150px; font-family: monospace; font-size: 12px; cursor: pointer;" (click)="activeInspector = tc">
+                      <div class="truncated">{{ truncate(tc.stdin) }}</div>
+                      <div class="size-badge">{{ getSize(tc.stdin) }}</div>
+                    </td>
+                    <td class="mono-cell clickable font-mono text-xs" style="padding: 6px 8px; max-width: 150px; font-family: monospace; font-size: 12px; cursor: pointer;" (click)="activeInspector = tc">
+                      <div class="truncated">{{ truncate(tc.expectedOutput) }}</div>
+                      <div class="size-badge">{{ getSize(tc.expectedOutput) }}</div>
+                    </td>
+                    <td style="padding: 6px 8px; text-align: right;">
+                      <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                        <button (click)="openEditTestCase(tc)" class="btn btn-small" style="padding: 2px 6px; font-size: 11px;">Edit</button>
+                        <button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc" style="padding: 2px 6px; font-size: 11px;">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal: Add Problem Workflow -->
 @if (showAddProblem) {
   <div class="modal-overlay">
     <div class="modal-content modal-problem" [style.max-width]="step === 2 ? '800px' : '650px'">
@@ -111,7 +268,12 @@
                     <td style="padding: 8px;"><span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">{{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}</span></td>
                     <td class="mono-cell clickable font-mono text-xs" style="padding: 8px;" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.stdin) }}</div></td>
                     <td class="mono-cell clickable font-mono text-xs" style="padding: 8px;" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.expectedOutput) }}</div></td>
-                    <td style="padding: 8px;"><button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc" style="padding: 2px 6px; font-size: 11px;">Delete</button></td>
+                    <td style="padding: 8px;">
+                      <div style="display: flex; gap: 4px;">
+                        <button (click)="openEditTestCase(tc)" class="btn btn-small" style="padding: 2px 6px; font-size: 11px;">Edit</button>
+                        <button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc" style="padding: 2px 6px; font-size: 11px;">Delete</button>
+                      </div>
+                    </td>
                   </tr>
                 }
               </tbody>
@@ -128,44 +290,7 @@
   </div>
 }
 
-@if (showTestCases) {
-  <div class="modal-overlay"><div class="modal-content modal-testcases">
-    <div class="modal-header">
-      <h3 class="modal-title">Test Cases: {{ selectedProblemTitle }}</h3>
-      <button (click)="showTestCases = false" class="btn btn-modal-close">Close</button>
-    </div>
-
-    <div class="card card-form">
-      <div class="card-form-row">
-        <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
-        <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
-      </div>
-      <div class="card-form-actions">
-        <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
-        <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
-      </div>
-    </div>
-
-    @if (testCases.length === 0) {
-      <div class="empty-testcases">No testcases loaded for this problem. Add one above.</div>
-    } @else {
-      <table>
-        <thead><tr><th class="type-col">Type</th><th>Stdin (Click to inspect)</th><th>Expected Output (Click to inspect)</th><th class="action-col">Action</th></tr></thead>
-        <tbody>
-          @for (tc of testCases; track tc.id) {
-            <tr>
-              <td><span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">{{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}</span></td>
-              <td class="mono-cell clickable font-mono text-xs" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.stdin) }}</div><div class="size-badge">{{ getSize(tc.stdin) }}</div></td>
-              <td class="mono-cell clickable font-mono text-xs" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.expectedOutput) }}</div><div class="size-badge">{{ getSize(tc.expectedOutput) }}</div></td>
-              <td><button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc">Delete</button></td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
-  </div></div>
-}
-
+<!-- Inspector Modal overlay -->
 @if (activeInspector) {
   <div class="modal-overlay"><div class="modal-content modal-inspector">
     <div class="modal-header">
@@ -178,6 +303,8 @@
     </div>
   </div></div>
 }
+
+<!-- Alert Modal overlay -->
 @if (alertMsg) {
   <div class="modal-overlay z-max"><div class="modal-content modal-alert">
     <h3>Notification</h3>
@@ -186,6 +313,7 @@
   </div></div>
 }
 
+<!-- Confirm Modal overlay -->
 @if (confirmConfig) {
   <div class="modal-overlay z-max"><div class="modal-content modal-confirm">
     <h3>Are you sure?</h3>
@@ -195,4 +323,36 @@
       <button (click)="confirmConfig.onConfirm(); confirmConfig = null" class="btn btn-danger">Confirm</button>
     </div>
   </div></div>
+}
+
+<!-- Modal: Admin Edit Test Case Overlay -->
+@if (showEditTestCase) {
+  <div class="modal-overlay" style="z-index: 1050;">
+    <div class="modal-content" style="width: 500px; padding: 20px; border-radius: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: var(--text-bright);">Edit Test Case #{{ editingTestCaseId }}</h3>
+        <button (click)="showEditTestCase = false" class="btn" style="padding: 2px 8px; font-size: 12px;">Close</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">Stdin Input</label>
+        <textarea [(ngModel)]="editTcInput" placeholder="Standard input..." style="width: 100%; box-sizing: border-box; height: 100px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; resize: vertical;"></textarea>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label class="form-label" style="font-weight: bold; margin-bottom: 4px; display: block;">Expected Output *</label>
+        <textarea [(ngModel)]="editTcOutput" placeholder="Expected execution output..." style="width: 100%; box-sizing: border-box; height: 100px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px; resize: vertical;"></textarea>
+      </div>
+
+      <div class="checkbox-container" style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
+        <input type="checkbox" id="editTcIsSample" [(ngModel)]="editTcIsSample" />
+        <label for="editTcIsSample" style="color: var(--text-bright); font-size: 14px; cursor: pointer;">Is Sample Test Case</label>
+      </div>
+
+      <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button (click)="showEditTestCase = false" class="btn">Cancel</button>
+        <button (click)="saveEditedTestCase()" class="btn btn-success" [disabled]="!editTcOutput">Save Changes</button>
+      </div>
+    </div>
+  </div>
 }

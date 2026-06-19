@@ -22,6 +22,7 @@ export class StudentsComponent implements OnInit {
   showAddModal = false;
   showImportModal = false;
   showEditModal = false;
+  confirmConfig: { msg: string; onConfirm: () => void } | null = null;
 
   // Single User Forms
   newName = '';
@@ -88,11 +89,18 @@ export class StudentsComponent implements OnInit {
     });
   }
 
+  showConfirm(msg: string, action: () => void): void {
+    this.confirmConfig = { msg, onConfirm: action };
+  }
+
   deleteStudent(id: number): void {
-    if (!confirm('Are you sure you want to delete this student?')) return;
-    this.apiService.deleteStudent(id).subscribe({
-      next: () => this.loadStudents(),
-      error: (err) => alert(err.error?.error || 'Failed to delete student')
+    const student = this.students.find(s => s.id === id);
+    const nameStr = student ? `student "${student.name}"` : 'this student';
+    this.showConfirm(`Are you sure you want to delete ${nameStr}?`, () => {
+      this.apiService.deleteStudent(id).subscribe({
+        next: () => this.loadStudents(),
+        error: (err) => alert(err.error?.error || 'Failed to delete student')
+      });
     });
   }
 

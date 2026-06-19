@@ -159,7 +159,45 @@
             <thead><tr><th>Rank</th><th>Name</th><th>Roll No</th><th style="text-align: right;">Score</th></tr></thead>
             <tbody>
               @for (row of state.leaderboard; track row.rollNo; let idx = $index) {
-                <tr [style.background-color]="row.rollNo === state.rollNo ? 'rgba(35, 134, 54, 0.1)' : 'transparent'"><td style="font-weight: bold; font-family: monospace;">#{{ idx + 1 }}</td><td><strong style="color: var(--text-bright);">{{ row.name }}</strong></td><td style="font-family: monospace; font-size: 12px;">{{ row.rollNo }}</td><td style="text-align: right; font-weight: bold; color: #56d364;">{{ row.score }}</td></tr>
+                <tr [style.background-color]="row.rollNo === state.rollNo ? 'rgba(35, 134, 54, 0.1)' : 'transparent'"
+                    (click)="row.problems && row.problems.length > 0 && (row.expanded = !row.expanded)"
+                    [style.cursor]="row.problems && row.problems.length > 0 ? 'pointer' : 'default'">
+                  <td style="font-weight: bold; font-family: monospace;">
+                    @if (row.problems && row.problems.length > 0) {
+                      <span style="display: inline-block; margin-right: 6px; transition: transform 0.2s; font-size: 10px; color: var(--text-muted);"
+                            [style.transform]="row.expanded ? 'rotate(90deg)' : 'none'">▶</span>
+                    }
+                    #{{ idx + 1 }}
+                  </td>
+                  <td>
+                    <strong style="color: var(--text-bright);">{{ row.name }}</strong>
+                    @if (row.deleted) { <span style="color: #8b949e; font-weight: bold; font-size: 10px; margin-left: 8px; border: 1px solid rgba(139,148,158,0.3); padding: 1px 4px; border-radius: 4px;">DELETED</span> }
+                  </td>
+                  <td style="font-family: monospace; font-size: 12px;">{{ row.rollNo }}</td>
+                  <td style="text-align: right; font-weight: bold; color: #56d364;">{{ row.score }}</td>
+                </tr>
+                @if (row.expanded && row.problems && row.problems.length > 0) {
+                  <tr style="background: rgba(255, 255, 255, 0.02);">
+                    <td colspan="4" style="padding: 12px 24px; border-top: 1px dashed rgba(255,255,255,0.05); border-bottom: 1px solid var(--border-color);">
+                      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+                        @for (prob of row.problems; track prob.title) {
+                          <div style="text-align: left; background: #161b22; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; margin-bottom: 4px;">
+                              <span style="font-weight: bold; color: var(--text-bright); font-size: 13px;">{{ prob.title }}</span>
+                              <span style="font-size: 10px; font-weight: bold; color: #56d364; background: rgba(56, 149, 253, 0.1); border: 1px solid rgba(56, 149, 253, 0.2); padding: 1px 6px; border-radius: 10px;">
+                                {{ prob.verdict }}
+                              </span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                              <span>Score: <strong style="color: var(--text-bright);">{{ prob.score }}/{{ prob.maxScore }}</strong></span>
+                              <span>Time: <strong style="color: var(--text-bright);">{{ prob.time }}</strong></span>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>

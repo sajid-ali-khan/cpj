@@ -59,7 +59,7 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/submissions?contestId=${contestId}`, { headers: this.getHeaders() });
   }
   getLeaderboard(contestId: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/leaderboard?contestId=${contestId}`, { headers: this.getHeaders() });
+    return this.http.get(`${this.baseUrl}/contests/${contestId}/leaderboard`, { headers: this.getHeaders() });
   }
   getAdminContests(): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/contests`, { headers: this.getHeaders() });
@@ -131,5 +131,25 @@ export class ApiService {
   }
   getStudents(contestId: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/contests/${contestId}/workstations`, { headers: this.getHeaders() });
+  }
+
+  // --- Newly integrated endpoints ---
+  getContest(contestId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/contests/${contestId}`, { headers: this.getHeaders() });
+  }
+  getAdminContest(id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/contests/${id}`, { headers: this.getHeaders() });
+  }
+  startContest(id: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/admin/contests/${id}/start`, {}, { headers: this.getHeaders() });
+  }
+  getAdminProblem(id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/problems/${id}`, { headers: this.getHeaders() });
+  }
+  deleteProblem(id: number, force = false): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/admin/problems/${id}?force=${force}`, { headers: this.getHeaders() });
+  }
+  updateTestCase(id: number, body: any): Observable<any> {
+    return this.http.put(`${this.baseUrl}/admin/test-cases/${id}`, body, { headers: this.getHeaders() });
   }
 }
