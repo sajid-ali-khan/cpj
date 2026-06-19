@@ -39,6 +39,10 @@ public class Contest {
     @Builder.Default
     private Integer maxScore = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
     /**
      * Get the current contest phase based on startTime and duration
      */

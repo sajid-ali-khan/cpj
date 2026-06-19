@@ -118,6 +118,18 @@ export class ContestsComponent implements OnInit {
     });
   }
 
+  deleteContest(contestId: number): void {
+    if (confirm('Are you sure you want to delete this contest?')) {
+      this.apiService.deleteContest(contestId).subscribe({
+        next: () => {
+          this.loadData();
+          alert('Contest deleted successfully.');
+        },
+        error: (err) => alert(err.error?.error || 'Failed to delete contest')
+      });
+    }
+  }
+
   private resetForm(): void {
     this.title = '';
     this.description = '';

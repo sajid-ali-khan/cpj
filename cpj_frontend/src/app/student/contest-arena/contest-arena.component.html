@@ -33,8 +33,30 @@
                 <h3 class="card-title">{{ state.problems[state.activeQ].title }} <span class="card-difficulty">({{ state.problems[state.activeQ].difficulty }} | {{ state.problems[state.activeQ].points }} pts)</span> <span [class]="state.isSolved(state.problems[state.activeQ].problemId) ? 'badge-solved' : 'badge-unsolved'">{{ state.isSolved(state.problems[state.activeQ].problemId) ? 'Solved' : 'Unsolved' }}</span></h3>
                 <div class="problem-desc">{{ state.problems[state.activeQ].description }}</div>
                 @if (state.problems[state.activeQ].constraints) { <h4 class="sub-heading">Constraints</h4><pre class="pre-box">{{ state.problems[state.activeQ].constraints }}</pre> }
-                @if (state.problems[state.activeQ].inputStructure) { <h4 class="sub-heading">Input Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].inputStructure }}</div> }
-                @if (state.problems[state.activeQ].outputStructure) { <h4 class="sub-heading">Output Structure</h4><div class="structure-text">{{ state.problems[state.activeQ].outputStructure }}</div> }
+                @if (state.problems[state.activeQ].inputStructure) {
+                  <h4 class="sub-heading">Input Structure</h4>
+                  @if (isSingleLine(state.problems[state.activeQ].inputStructure)) {
+                    <div class="structure-text">{{ getSingleLine(state.problems[state.activeQ].inputStructure) }}</div>
+                  } @else {
+                    <ul class="structure-list" style="margin-top: 6px; padding-left: 20px; color: #8b949e; font-size: 13px; line-height: 1.6;">
+                      @for (line of getStructureLines(state.problems[state.activeQ].inputStructure); track line) {
+                        <li style="margin-bottom: 4px;">{{ line }}</li>
+                      }
+                    </ul>
+                  }
+                }
+                @if (state.problems[state.activeQ].outputStructure) {
+                  <h4 class="sub-heading">Output Structure</h4>
+                  @if (isSingleLine(state.problems[state.activeQ].outputStructure)) {
+                    <div class="structure-text">{{ getSingleLine(state.problems[state.activeQ].outputStructure) }}</div>
+                  } @else {
+                    <ul class="structure-list" style="margin-top: 6px; padding-left: 20px; color: #8b949e; font-size: 13px; line-height: 1.6;">
+                      @for (line of getStructureLines(state.problems[state.activeQ].outputStructure); track line) {
+                        <li style="margin-bottom: 4px;">{{ line }}</li>
+                      }
+                    </ul>
+                  }
+                }
               </div>
             } @else if (leftTab === 'submissions') {
               <div class="card card-description">

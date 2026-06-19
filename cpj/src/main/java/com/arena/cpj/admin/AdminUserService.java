@@ -25,9 +25,14 @@ public class AdminUserService {
             throw new BadRequestException("Roll number already exists: " + request.getRollNo());
         }
 
+        if (userRepository.findByEmail(request.getEmail().trim()).isPresent()) {
+            throw new BadRequestException("Email already exists: " + request.getEmail());
+        }
+
         User user = User.builder()
                 .name(request.getName().trim())
                 .rollNo(request.getRollNo().trim())
+                .email(request.getEmail().trim())
                 .branch(request.getBranch() != null ? request.getBranch().trim() : null)
                 .role(request.getRole() != null ? request.getRole() : UserRole.STUDENT)
                 .build();
@@ -57,6 +62,9 @@ public class AdminUserService {
         if (request.getRollNo() == null || request.getRollNo().isBlank()) {
             throw new BadRequestException("rollNo is required");
         }
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new BadRequestException("email is required");
+        }
     }
 
     private UserResponse toResponse(User user) {
@@ -65,6 +73,7 @@ public class AdminUserService {
                 .name(user.getName())
                 .rollNo(user.getRollNo())
                 .branch(user.getBranch())
+                .email(user.getEmail())
                 .role(user.getRole())
                 .build();
     }
@@ -83,8 +92,16 @@ public class AdminUserService {
             }
         });
 
+        String newEmail = request.getEmail().trim();
+        userRepository.findByEmail(newEmail).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new BadRequestException("Email already exists: " + newEmail);
+            }
+        });
+
         user.setName(request.getName().trim());
         user.setRollNo(newRollNo);
+        user.setEmail(newEmail);
         user.setBranch(request.getBranch() != null ? request.getBranch().trim() : null);
         if (request.getRole() != null) {
             user.setRole(request.getRole());

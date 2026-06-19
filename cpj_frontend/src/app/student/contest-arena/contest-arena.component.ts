@@ -140,4 +140,22 @@ export class ContestArenaComponent implements OnInit, AfterViewInit {
   onFs(): void {
     if (this.shouldViolate() && !(document.fullscreenElement || (document as any).webkitFullscreenElement)) this.triggerViolation('Exited fullscreen mode');
   }
+
+  getStructureLines(val: string): string[] {
+    if (!val) return [];
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed.map(item => item.trim()).filter(Boolean);
+    } catch (e) {}
+    return [val.trim()];
+  }
+
+  isSingleLine(val: string): boolean {
+    return this.getStructureLines(val).length <= 1;
+  }
+
+  getSingleLine(val: string): string {
+    const lines = this.getStructureLines(val);
+    return lines.length > 0 ? lines[0] : '';
+  }
 }

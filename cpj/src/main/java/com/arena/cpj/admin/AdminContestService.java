@@ -22,6 +22,7 @@ public class AdminContestService {
     private final ProblemRepository problemRepository;
     private final ContestService contestService;
     private final com.arena.cpj.submission.SubmissionRepository submissionRepository;
+    private final com.arena.cpj.leaderboard.LeaderboardRepository leaderboardRepository;
 
     @Transactional
     public ContestDetailResponse create(CreateContestRequest request) {
@@ -51,7 +52,7 @@ public class AdminContestService {
 
     @Transactional
     public List<ContestResponse> list() {
-        return contestRepository.findAllByOrderByStartTimeDesc().stream()
+        return contestRepository.findAllByDeletedFalseOrderByStartTimeDesc().stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -114,8 +115,12 @@ public class AdminContestService {
     }
 
     private Contest findContest(Long id) {
-        return contestRepository.findById(id)
+        Contest contest = contestRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Contest not found: " + id));
+        if (contest.isDeleted()) {
+            throw new NotFoundException("Contest not found: " + id);
+        }
+        return contest;
     }
 
     private void validate(CreateContestRequest request) {
@@ -247,5 +252,39 @@ public class AdminContestService {
                             .build();
                 })
                 .toList();
+    }
+
+    @Transactional
+    public void registerStudentsBulk(Long contestId, List<String> rollNumbers) {
+        contestService.registerStudentsBulk(contestId, rollNumbers);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminContestRegistrationResponse> getEligibleStudents(Long contestId) {
+        if (!contestRepository.existsById(contestId)) {
+            throw new NotFoundException("Contest not found: " + contestId);
+        }
+        return leaderboardRepository.findByContestId(contestId).stream()
+                .map(l -> AdminContestRegistrationResponse.builder()
+                        .id(l.getId())
+                        .name(l.getUser().getName())
+                        .rollNumber(l.getUser().getRollNo())
+                        .email(l.getUser().getEmail())
+                        .branch(l.getUser().getBranch())
+                        .participantStatus(l.getStatus())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Contest contest = findContest(id);
+        contest.setDeleted(true);
+        contestRepository.save(contest);
+    }
+
+    @Transactional
+    public void deleteStudentRegistration(Long contestId, Long userId) {
+        contestService.deleteStudentRegistration(contestId, userId);
     }
 }

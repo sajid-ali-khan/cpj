@@ -24,6 +24,7 @@
           <th>Duration</th>
           <th>Problems</th>
           <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -38,6 +39,11 @@
               <span class="status-badge" [style.color]="contest.phase === 'LIVE' ? '#56d364' : contest.phase === 'UPCOMING' ? '#58a6ff' : '#8b949e'">
                 {{ contest.phase }}
               </span>
+            </td>
+            <td>
+              <div class="actions-cell">
+                <button (click)="deleteContest(contest.id)" class="btn btn-danger btn-small">Delete</button>
+              </div>
             </td>
           </tr>
         }

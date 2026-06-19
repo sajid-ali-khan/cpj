@@ -12,5 +12,6 @@ public class UserResponse {
     private final String name;
     private final String rollNo;
     private final String branch;
+    private final String email;
     private final UserRole role;
 }

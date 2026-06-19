@@ -61,8 +61,7 @@ public class ContestController {
 
     @PostMapping("/{contestId}/register")
     public org.springframework.http.ResponseEntity<?> register(
-            @PathVariable Long contestId,
-            @RequestBody(required = false) java.util.Map<String, Object> body) {
+         @PathVariable Long contestId) {
         contestService.registerUserForContest(com.arena.cpj.auth.UserContext.get(), contestId);
         return org.springframework.http.ResponseEntity.ok(java.util.Map.of("success", true, "message", "Registration successful"));
     }

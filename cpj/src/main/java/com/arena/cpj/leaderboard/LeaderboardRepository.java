@@ -27,4 +27,6 @@ public interface LeaderboardRepository extends JpaRepository<Leaderboard, Long> 
      * duplicate leaderboard entries for the same (contest, user).
      */
     boolean existsByContestIdAndUserId(Long contestId, Long userId);
+
+    List<Leaderboard> findByContestId(Long contestId);
 }

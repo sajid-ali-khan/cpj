@@ -10,6 +10,7 @@ import com.arena.cpj.leaderboard.LeaderboardRepository;
 import com.arena.cpj.leaderboard.LeaderboardService;
 import com.arena.cpj.problem.TestCaseRepository;
 import com.arena.cpj.user.User;
+import com.arena.cpj.user.UserRepository;
 import com.arena.cpj.user.UserRole;
 import com.arena.cpj.auth.UserContext;
 import com.arena.cpj.auth.ForbiddenException;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -31,11 +33,12 @@ public class ContestService {
     private final LeaderboardRepository leaderboardRepository;
     private final LeaderboardService leaderboardService;
     private final TestCaseRepository testCaseRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<ContestSummaryResponse> getCurrentContest() {
         Instant now = Instant.now();
-        return contestRepository.findAllByOrderByStartTimeDesc().stream()
+        return contestRepository.findAllByDeletedFalseOrderByStartTimeDesc().stream()
                 .filter(c -> c.getPhase(now) == ContestPhase.LIVE)
                 .map(this::toSummary)
                 .toList();
@@ -43,15 +46,14 @@ public class ContestService {
 
     @Transactional(readOnly = true)
     public List<ContestSummaryResponse> getAllContests() {
-        return contestRepository.findAllByOrderByStartTimeDesc().stream()
+        return contestRepository.findAllByDeletedFalseOrderByStartTimeDesc().stream()
                 .map(this::toSummary)
                 .toList();
     }
 
     @Transactional
     public List<ContestProblemSummaryResponse> getContestProblems(Long contestId) {
-        Contest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
+        Contest contest = findContest(contestId);
 
         User currentUser = UserContext.get();
         if (currentUser != null && currentUser.getRole() == UserRole.STUDENT) {
@@ -60,6 +62,9 @@ public class ContestService {
             }
             Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, currentUser.getId())
                     .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
+            if (entry.getStatus() == ParticipantStatus.NOT_REGISTERED) {
+                throw new ForbiddenException("You must register for the contest first.");
+            }
             if (entry.getStatus() == ParticipantStatus.FINISHED) {
                 throw new ForbiddenException("You have already submitted this contest");
             }
@@ -118,26 +123,62 @@ public class ContestService {
 
     @Transactional
     public void registerUserForContest(User user, Long contestId) {
-        Contest contest = contestRepository.findById(contestId)
-                .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
+        Contest contest = findContest(contestId);
 
         if (contest.getPhase(Instant.now()) == ContestPhase.FINISHED) {
             throw new com.arena.cpj.common.BadRequestException("Cannot register for a finished contest");
         }
 
-        boolean exists = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId()).isPresent();
-        if (!exists) {
-            Leaderboard entry = Leaderboard.builder()
+        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
+                .orElse(null);
+
+        if (entry == null) {
+            entry = Leaderboard.builder()
                     .contest(contest)
                     .user(user)
                     .score(0)
                     .lastAcTime(null)
+                    .status(ParticipantStatus.REGISTERED)
                     .build();
             leaderboardRepository.save(entry);
-
-            // Broadcast the new leaderboard list via SSE
+            sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
+        } else if (entry.getStatus() == ParticipantStatus.NOT_REGISTERED) {
+            entry.setStatus(ParticipantStatus.REGISTERED);
+            leaderboardRepository.save(entry);
             sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
         }
+    }
+
+    @Transactional
+    public void registerStudentsBulk(Long contestId, List<String> rollNumbers) {
+        Contest contest = findContest(contestId);
+
+        List<Leaderboard> newEntries = new ArrayList<>();
+
+        for (String rollNo : rollNumbers) {
+            if (rollNo == null || rollNo.trim().isEmpty()) {
+                continue;
+            }
+            User user = userRepository.findByRollNo(rollNo.trim())
+                    .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNo));
+
+            boolean exists = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId()).isPresent();
+            if (!exists) {
+                Leaderboard entry = Leaderboard.builder()
+                        .contest(contest)
+                        .user(user)
+                        .score(0)
+                        .status(ParticipantStatus.NOT_REGISTERED)
+                        .build();
+                newEntries.add(entry);
+            }
+        }
+        if (!newEntries.isEmpty()) {
+            leaderboardRepository.saveAll(newEntries);
+        }
+
+        // Broadcast the new leaderboard list via SSE
+        sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
     }
 
     @Transactional
@@ -156,8 +197,24 @@ public class ContestService {
     }
 
     public ContestSummaryResponse getContest(Long contestId) {
+        Contest contest = findContest(contestId);
+        return toSummary(contest);
+    }
+
+    private Contest findContest(Long contestId) {
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> new NotFoundException("Contest not found: " + contestId));
-        return toSummary(contest);
+        if (contest.isDeleted()) {
+            throw new NotFoundException("Contest not found: " + contestId);
+        }
+        return contest;
+    }
+
+    @Transactional
+    public void deleteStudentRegistration(Long contestId, Long userId) {
+        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, userId)
+                .orElseThrow(() -> new NotFoundException("Registration not found for contest: " + contestId + " and user: " + userId));
+        leaderboardRepository.delete(entry);
+        sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
     }
 }

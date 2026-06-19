@@ -13,5 +13,6 @@ public class CreateUserRequest {
     private String name;
     private String rollNo;
     private String branch;
+    private String email;
     private UserRole role;
 }

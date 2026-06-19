@@ -24,24 +24,134 @@
 </div>
 
 @if (showAddProblem) {
-  <div class="modal-overlay"><div class="modal-content modal-problem">
-    <h3>Add Problem</h3>
-    <p class="modal-subtitle">Register a new challenge in the directory.</p>
-    <div class="form-group"><label class="form-label">Problem Title *</label><input type="text" [(ngModel)]="title" placeholder="e.g. Find Longest Palindrome" /></div>
-    <div class="form-group"><label class="form-label">Description *</label><textarea [(ngModel)]="description" placeholder="Problem details..." class="textarea-description"></textarea></div>
-    <div class="form-group"><label class="form-label">Constraints</label><textarea [(ngModel)]="constraints" placeholder="e.g. 1 <= N <= 10^5" class="textarea-constraints"></textarea></div>
-    <div class="form-group"><label class="form-label">Difficulty</label>
-      <select [(ngModel)]="difficulty"><option value="EASY">EASY</option><option value="MEDIUM">MEDIUM</option><option value="HARD">HARD</option></select>
+  <div class="modal-overlay">
+    <div class="modal-content modal-problem" [style.max-width]="step === 2 ? '800px' : '650px'">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 class="modal-title" style="color: var(--text-bright); font-weight: bold; margin: 0;">
+          {{ step === 1 ? 'Add Problem (Step 1/2)' : 'Add Test Cases (Step 2/2): ' + selectedProblemTitle }}
+        </h3>
+        <button (click)="cancelAddProblem()" class="btn btn-modal-close" style="background: none; border: none; font-size: 18px; color: #8b949e; cursor: pointer;">✕</button>
+      </div>
+
+      @if (step === 1) {
+        <p class="modal-subtitle" style="margin-top: -10px; margin-bottom: 15px; font-size: 13px; color: #8b949e;">Configure details and dynamic line-structure descriptions.</p>
+        <div class="form-group"><label class="form-label">Problem Title *</label><input type="text" [(ngModel)]="title" placeholder="e.g. Find Longest Palindrome" style="width: 100%; box-sizing: border-box;" /></div>
+        <div class="form-group"><label class="form-label">Description *</label><textarea [(ngModel)]="description" placeholder="Problem details..." class="textarea-description" style="width: 100%; box-sizing: border-box;"></textarea></div>
+        <div class="form-group"><label class="form-label">Constraints</label><textarea [(ngModel)]="constraints" placeholder="e.g. 1 <= N <= 10^5" class="textarea-constraints" style="width: 100%; box-sizing: border-box;"></textarea></div>
+        <div class="form-group"><label class="form-label">Difficulty</label>
+          <select [(ngModel)]="difficulty" style="width: 100%; box-sizing: border-box;"><option value="EASY">EASY</option><option value="MEDIUM">MEDIUM</option><option value="HARD">HARD</option></select>
+        </div>
+
+        <div class="form-row" style="margin-bottom: 15px; display: flex; gap: 15px;">
+          <div class="form-col" style="flex: 1;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Input Structure Lines</span>
+              <button type="button" (click)="addInputLine()" class="btn btn-small" style="padding: 2px 8px; font-size: 11px;">+ Add Line</button>
+            </label>
+            @for (item of inputStructureItems; track idx; let idx = $index) {
+              <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
+                <span style="font-family: monospace; font-size: 12px; color: #8b949e;">{{ idx + 1 }}.</span>
+                <input type="text" [(ngModel)]="inputStructureItems[idx]" placeholder="e.g. First line contains N" style="flex: 1;" />
+                <button type="button" (click)="removeInputLine(idx)" class="btn btn-danger btn-small" style="padding: 4px 8px; font-size: 12px;" [disabled]="inputStructureItems.length <= 1 && !inputStructureItems[0]">✕</button>
+              </div>
+            }
+          </div>
+
+          <div class="form-col" style="flex: 1;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Output Structure Lines</span>
+              <button type="button" (click)="addOutputLine()" class="btn btn-small" style="padding: 2px 8px; font-size: 11px;">+ Add Line</button>
+            </label>
+            @for (item of outputStructureItems; track idx; let idx = $index) {
+              <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
+                <span style="font-family: monospace; font-size: 12px; color: #8b949e;">{{ idx + 1 }}.</span>
+                <input type="text" [(ngModel)]="outputStructureItems[idx]" placeholder="e.g. Print N integers" style="flex: 1;" />
+                <button type="button" (click)="removeOutputLine(idx)" class="btn btn-danger btn-small" style="padding: 4px 8px; font-size: 12px;" [disabled]="outputStructureItems.length <= 1 && !outputStructureItems[0]">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-top: 15px;">
+          <button (click)="cancelAddProblem()" class="btn">Cancel</button>
+          <button (click)="saveProblem()" class="btn btn-success" [disabled]="!title || !description">Next: Test Cases</button>
+        </div>
+      }
+
+      @if (step === 2) {
+        <p class="modal-subtitle" style="margin-top: -10px; margin-bottom: 15px; font-size: 13px; color: #8b949e;">Add testcases to evaluate submissions. At least one is required to finish.</p>
+
+        <div class="card card-form" style="margin-bottom: 15px; padding: 15px;">
+          <div class="tabs-container">
+            <button (click)="addMode = 'manual'" [class.active]="addMode === 'manual'" class="tab-btn">Paste Text</button>
+            <button (click)="addMode = 'file'" [class.active]="addMode === 'file'" class="tab-btn">Upload Files</button>
+            <button (click)="addMode = 'csv'" [class.active]="addMode === 'csv'" class="tab-btn">Bulk CSV</button>
+          </div>
+
+          @if (addMode === 'file') {
+            <div class="file-inputs">
+              <div class="file-box"><label>Input File (.txt/.in)</label><input type="file" (change)="onFileChange($event, 'tcInput')" /></div>
+              <div class="file-box"><label>Output File (.txt/.out)</label><input type="file" (change)="onFileChange($event, 'tcOutput')" /></div>
+            </div>
+          }
+
+          @if (addMode === 'csv') {
+            <div class="csv-input">
+              <label>Upload Test Cases CSV (1st col: stdin, 2nd col: expected output, 3rd col: isSample)</label>
+              <input type="file" accept=".csv" (change)="onCSVFileSelected($event)" />
+              @if (selectedCSVFile) {
+                <div class="selected-file">Selected: {{ selectedCSVFile.name }}</div>
+                <button (click)="uploadCSV()" class="btn btn-success btn-upload-csv">Upload CSV File</button>
+              }
+            </div>
+          }
+
+          @if (addMode !== 'csv') {
+            <div class="card-form-row">
+              <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
+              <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
+            </div>
+            <div class="card-form-actions">
+              <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
+              <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
+            </div>
+          }
+        </div>
+
+        @if (testCases.length === 0) {
+          <div class="empty-testcases" style="margin-bottom: 20px; text-align: center; color: #8b949e; padding: 20px;">No testcases loaded for this problem. Add one above.</div>
+        } @else {
+          <div style="max-height: 200px; overflow-y: auto; margin-bottom: 20px; border: 1px solid var(--border-color); border-radius: 6px;">
+            <table style="width: 100%; margin: 0; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #0d1117; border-bottom: 1px solid var(--border-color);">
+                  <th class="type-col" style="padding: 8px; text-align: left; color: var(--text-bright);">Type</th>
+                  <th style="padding: 8px; text-align: left; color: var(--text-bright);">Stdin</th>
+                  <th style="padding: 8px; text-align: left; color: var(--text-bright);">Expected Output</th>
+                  <th class="action-col" style="padding: 8px; text-align: left; color: var(--text-bright);">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (tc of testCases; track tc.id) {
+                  <tr style="border-bottom: 1px solid var(--border-color); font-size: 12px;">
+                    <td style="padding: 8px;"><span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'">{{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}</span></td>
+                    <td class="mono-cell clickable font-mono text-xs" style="padding: 8px;" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.stdin) }}</div></td>
+                    <td class="mono-cell clickable font-mono text-xs" style="padding: 8px;" (click)="activeInspector = tc"><div class="truncated">{{ truncate(tc.expectedOutput) }}</div></td>
+                    <td style="padding: 8px;"><button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc" style="padding: 2px 6px; font-size: 11px;">Delete</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <div class="form-actions" style="margin-top: 15px;">
+          <button (click)="cancelAddProblem()" class="btn">Cancel</button>
+          <button (click)="finishAddProblem()" class="btn btn-success" [disabled]="testCases.length === 0">Finish</button>
+        </div>
+      }
     </div>
-    <div class="form-row">
-      <div class="form-col"><label class="form-label">Input Structure</label><input type="text" [(ngModel)]="inputStructure" /></div>
-      <div class="form-col"><label class="form-label">Output Structure</label><input type="text" [(ngModel)]="outputStructure" /></div>
-    </div>
-    <div class="form-actions">
-      <button (click)="showAddProblem = false" class="btn">Cancel</button>
-      <button (click)="saveProblem()" class="btn btn-success" [disabled]="!title || !description">Save Problem</button>
-    </div>
-  </div></div>
+  </div>
 }
 
 @if (showTestCases) {

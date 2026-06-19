@@ -7,4 +7,6 @@ import java.util.List;
 public interface ContestRepository extends JpaRepository<Contest, Long> {
 
     List<Contest> findAllByOrderByStartTimeDesc();
+
+    List<Contest> findAllByDeletedFalseOrderByStartTimeDesc();
 }

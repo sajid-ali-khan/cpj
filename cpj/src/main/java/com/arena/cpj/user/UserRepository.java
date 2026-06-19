@@ -9,6 +9,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByRollNo(String rollNo);
 
+    Optional<User> findByEmail(String email);
+
     Optional<User> findByActiveSessionToken(String token);
 
     List<User> findAllByOrderByRollNoAsc();

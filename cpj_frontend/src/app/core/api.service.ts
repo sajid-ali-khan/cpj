@@ -73,8 +73,20 @@ export class ApiService {
   endContest(id: number): Observable<any> {
     return this.http.post(`${this.baseUrl}/admin/contests/${id}/end`, {}, { headers: this.getHeaders() });
   }
+  deleteContest(id: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/admin/contests/${id}`, { headers: this.getHeaders() });
+  }
   getAdminContestSubmissions(contestId: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/contests/${contestId}/submissions`, { headers: this.getHeaders() });
+  }
+  registerStudentsBulk(contestId: number, rollNumbers: string[]): Observable<any> {
+    return this.http.post(`${this.baseUrl}/admin/contests/${contestId}/registrations`, rollNumbers, { headers: this.getHeaders() });
+  }
+  getAdminContestRegistrations(contestId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/contests/${contestId}/registrations`, { headers: this.getHeaders() });
+  }
+  deleteStudentRegistration(contestId: number, userId: number): Observable<any> {
+    return this.http.delete(`${this.baseUrl}/admin/contests/${contestId}/registrations/${userId}`, { headers: this.getHeaders() });
   }
   getAdminProblems(): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/problems`, { headers: this.getHeaders() });
