@@ -74,7 +74,9 @@ public class ContestControllerDocTest {
                 .startTime(Instant.now().plusSeconds(3600))
                 .durationMins(120)
                 .phase(ContestPhase.UPCOMING)
-                .problemIds(List.of(10L))
+                .problemCount(1)
+                .status("Registered (Upcoming)")
+                .violations(0)
                 .build();
 
         when(contestService.getCurrentContest()).thenReturn(List.of(contest));
@@ -85,19 +87,21 @@ public class ContestControllerDocTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Monthly Contest 1"))
                 .andDo(document("contest-get-current",
-                        requestHeaders(
-                                headerWithName("X-Roll-No").description("Active session token for student authentication.")
-                        ),
-                        responseFields(
-                                fieldWithPath("[].id").description("The database ID of the contest."),
-                                fieldWithPath("[].title").description("The title of the contest."),
-                                fieldWithPath("[].description").description("The detailed description of the contest."),
-                                fieldWithPath("[].startTime").description("The start time of the contest (ISO instant format)."),
-                                fieldWithPath("[].durationMins").description("Duration of the contest in minutes."),
-                                fieldWithPath("[].phase").description("Current contest phase (UPCOMING, LIVE, FINISHED)."),
-                                fieldWithPath("[].problemIds").description("List of problem IDs assigned to this contest.")
-                        )
-                ));
+                         requestHeaders(
+                                 headerWithName("X-Roll-No").description("Active session token for student authentication.")
+                         ),
+                         responseFields(
+                                 fieldWithPath("[].id").description("The database ID of the contest."),
+                                 fieldWithPath("[].title").description("The title of the contest."),
+                                 fieldWithPath("[].description").description("The detailed description of the contest."),
+                                 fieldWithPath("[].startTime").description("The start time of the contest (ISO instant format)."),
+                                 fieldWithPath("[].durationMins").description("Duration of the contest in minutes."),
+                                 fieldWithPath("[].phase").description("Current contest phase (UPCOMING, LIVE, FINISHED)."),
+                                 fieldWithPath("[].problemCount").description("The count of problems assigned to this contest."),
+                                 fieldWithPath("[].status").description("The student's status for this contest (REGISTERED, FINISHED, etc.)."),
+                                 fieldWithPath("[].violations").description("The student's violations count for this contest.")
+                         )
+                 ));
     }
 
     @Test

@@ -72,6 +72,10 @@ public class SubmissionService {
             log.warn("Contest validation failed: User ID {} has already submitted Contest ID {}", user.getId(), contestId);
             throw new ForbiddenException("You have already submitted this contest");
         }
+        if (entry.getStatus() == ParticipantStatus.LOCKED) {
+            log.warn("Contest validation failed: User ID {} is locked out in Contest ID {}", user.getId(), contestId);
+            throw new ForbiddenException("You are locked out of this contest due to violations");
+        }
         
         // Guard 1: Check contest phase is LIVE
         if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
@@ -181,6 +185,9 @@ public class SubmissionService {
                     .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
             if (entry.getStatus() == ParticipantStatus.FINISHED) {
                 throw new ForbiddenException("You have already submitted this contest");
+            }
+            if (entry.getStatus() == ParticipantStatus.LOCKED) {
+                throw new ForbiddenException("You are locked out of this contest due to violations");
             }
         }
 

@@ -4,5 +4,6 @@ public enum ParticipantStatus {
     NOT_REGISTERED,
     REGISTERED,
     WRITING,
-    FINISHED
+    FINISHED,
+    LOCKED
 }

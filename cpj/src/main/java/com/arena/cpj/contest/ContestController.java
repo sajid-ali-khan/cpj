@@ -50,8 +50,10 @@ public class ContestController {
     }
 
     @GetMapping
-    public List<ContestSummaryResponse> getAll() {
-        return contestService.getAllContests();
+    public org.springframework.data.domain.Page<ContestSummaryResponse> getAll(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        return contestService.getEligibleContests(page, size);
     }
 
     @GetMapping("/{contestId}/problems")
@@ -121,7 +123,9 @@ public class ContestController {
         int violationCount = body.getOrDefault("violations", 0);
         entry.setViolations(violationCount);
         if (violationCount >= 3) {
-            entry.setStatus(ParticipantStatus.FINISHED);
+            entry.setStatus(ParticipantStatus.LOCKED);
+        } else if (entry.getStatus() == ParticipantStatus.LOCKED) {
+            entry.setStatus(ParticipantStatus.WRITING);
         }
         leaderboardRepository.save(entry);
 

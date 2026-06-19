@@ -16,5 +16,7 @@ public class ContestSummaryResponse {
     private final Instant startTime;
     private final Integer durationMins;
     private final ContestPhase phase;
-    private final java.util.List<Long> problemIds;
+    private final Integer problemCount;
+    private final String status;
+    private final Integer violations;
 }

@@ -4,7 +4,6 @@ import com.arena.cpj.common.NotFoundException;
 import com.arena.cpj.contest.dto.ContestProblemSummaryResponse;
 import com.arena.cpj.contest.dto.ContestSummaryResponse;
 import com.arena.cpj.event.SseService;
-import com.arena.cpj.event.dto.ContestEventDto;
 import com.arena.cpj.leaderboard.Leaderboard;
 import com.arena.cpj.leaderboard.LeaderboardRepository;
 import com.arena.cpj.leaderboard.LeaderboardService;
@@ -22,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,10 +38,52 @@ public class ContestService {
     @Transactional(readOnly = true)
     public List<ContestSummaryResponse> getCurrentContest() {
         Instant now = Instant.now();
+        User currentUser = UserContext.get();
+        if (currentUser == null) {
+            return List.of();
+        }
+
+        java.util.Set<Long> eligibleIds = java.util.Collections.emptySet();
+        if (currentUser.getRole() == UserRole.STUDENT) {
+            eligibleIds = leaderboardRepository.findByUserId(currentUser.getId()).stream()
+                    .map(l -> l.getContest().getId())
+                    .collect(java.util.stream.Collectors.toSet());
+        }
+
+        final java.util.Set<Long> finalEligibleIds = eligibleIds;
         return contestRepository.findAllByDeletedFalseOrderByStartTimeDesc().stream()
                 .filter(c -> c.getPhase(now) == ContestPhase.LIVE)
+                .filter(c -> currentUser.getRole() == UserRole.ADMIN || finalEligibleIds.contains(c.getId()))
                 .map(this::toSummary)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ContestSummaryResponse> getEligibleContests(int page, int size) {
+        User currentUser = UserContext.get();
+        if (currentUser == null) {
+            return org.springframework.data.domain.Page.empty();
+        }
+
+        org.springframework.data.domain.PageRequest pageRequest = org.springframework.data.domain.PageRequest.of(page, size);
+
+        if (currentUser.getRole() == UserRole.ADMIN) {
+            return contestRepository.findAllByDeletedFalseOrderByStartTimeDesc(pageRequest)
+                    .map(this::toSummary);
+        }
+
+        // For student, only fetch eligible contests (leaderboard entries exist)
+        List<Leaderboard> registrations = leaderboardRepository.findByUserId(currentUser.getId());
+        if (registrations.isEmpty()) {
+            return org.springframework.data.domain.Page.empty();
+        }
+
+        List<Long> eligibleContestIds = registrations.stream()
+                .map(r -> r.getContest().getId())
+                .toList();
+
+        return contestRepository.findByIdInAndDeletedFalseOrderByStartTimeDesc(eligibleContestIds, pageRequest)
+                .map(this::toSummary);
     }
 
     @Transactional(readOnly = true)
@@ -67,6 +109,9 @@ public class ContestService {
             }
             if (entry.getStatus() == ParticipantStatus.FINISHED) {
                 throw new ForbiddenException("You have already submitted this contest");
+            }
+            if (entry.getStatus() == ParticipantStatus.LOCKED) {
+                throw new ForbiddenException("You are locked out of this contest due to violations");
             }
             if (entry.getStatus() == ParticipantStatus.REGISTERED) {
                 entry.setStatus(ParticipantStatus.WRITING);
@@ -105,10 +150,42 @@ public class ContestService {
     }
 
     private ContestSummaryResponse toSummary(Contest contest) {
-        List<Long> problemIds = contestProblemRepository.findByIdContestIdOrderByDisplayOrderAsc(contest.getId())
-                .stream()
-                .map(cp -> cp.getProblem().getId())
-                .toList();
+        User currentUser = UserContext.get();
+        String status = "Not Registered";
+        Integer violations = 0;
+
+        if (currentUser != null && currentUser.getRole() == UserRole.STUDENT) {
+            Optional<Leaderboard> entryOpt = leaderboardRepository.findByContestIdAndUserId(contest.getId(), currentUser.getId());
+            boolean isRegistered = entryOpt.isPresent();
+            ParticipantStatus partStatus = isRegistered ? entryOpt.get().getStatus() : ParticipantStatus.NOT_REGISTERED;
+            violations = isRegistered ? entryOpt.get().getViolations() : 0;
+
+            ContestPhase phase = contest.getPhase(Instant.now());
+
+            if (phase == ContestPhase.FINISHED) {
+                if (isRegistered && partStatus != ParticipantStatus.NOT_REGISTERED) {
+                    status = "Ended (Registered)";
+                } else {
+                    status = "Ended (Not Registered)";
+                }
+            } else if (phase == ContestPhase.UPCOMING) {
+                if (isRegistered && partStatus != ParticipantStatus.NOT_REGISTERED) {
+                    status = "Registered (Upcoming)";
+                } else {
+                    status = "Not Registered";
+                }
+            } else { // LIVE
+                if (!isRegistered || partStatus == ParticipantStatus.NOT_REGISTERED) {
+                    status = "Not Registered";
+                } else if (partStatus == ParticipantStatus.LOCKED || violations >= 3) {
+                    status = "Locked Out";
+                } else if (partStatus == ParticipantStatus.FINISHED) {
+                    status = "Submitted";
+                } else {
+                    status = "Registered";
+                }
+            }
+        }
 
         return ContestSummaryResponse.builder()
                 .id(contest.getId())
@@ -117,7 +194,9 @@ public class ContestService {
                 .startTime(contest.getStartTime())
                 .durationMins(contest.getDurationMins())
                 .phase(contest.getPhase(Instant.now()))
-                .problemIds(problemIds)
+                .problemCount(contest.getProblemCount())
+                .status(status)
+                .violations(violations)
                 .build();
     }
 
@@ -130,19 +209,9 @@ public class ContestService {
         }
 
         Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
-                .orElse(null);
+                .orElseThrow(() -> new ForbiddenException("You are not eligible to register for this contest. Please contact an admin."));
 
-        if (entry == null) {
-            entry = Leaderboard.builder()
-                    .contest(contest)
-                    .user(user)
-                    .score(0)
-                    .lastAcTime(null)
-                    .status(ParticipantStatus.REGISTERED)
-                    .build();
-            leaderboardRepository.save(entry);
-            sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
-        } else if (entry.getStatus() == ParticipantStatus.NOT_REGISTERED) {
+        if (entry.getStatus() == ParticipantStatus.NOT_REGISTERED) {
             entry.setStatus(ParticipantStatus.REGISTERED);
             leaderboardRepository.save(entry);
             sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
@@ -187,7 +256,7 @@ public class ContestService {
         Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
                 .orElseThrow(() -> new NotFoundException("User is not registered for this contest"));
 
-        if (entry.getStatus() != ParticipantStatus.FINISHED) {
+        if (entry.getStatus() != ParticipantStatus.FINISHED && entry.getStatus() != ParticipantStatus.LOCKED) {
             entry.setStatus(ParticipantStatus.FINISHED);
             leaderboardRepository.save(entry);
 

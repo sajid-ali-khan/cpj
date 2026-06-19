@@ -73,7 +73,7 @@ public class StudentController {
 
         List<Leaderboard> entries = leaderboardRepository.findByUserId(user.getId());
         for (Leaderboard entry : entries) {
-            if (entry.getViolations() >= 3 && entry.getStatus() == ParticipantStatus.FINISHED) {
+            if (entry.getStatus() == ParticipantStatus.LOCKED) {
                 entry.setStatus(ParticipantStatus.WRITING);
             }
             entry.setViolations(0);
