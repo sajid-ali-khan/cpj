@@ -97,28 +97,7 @@ public class ContestController {
         return ResponseEntity.ok(list);
     }
 
-    @GetMapping("/workstations")
-    public ResponseEntity<List<StudentWorkstationDto>> getAllWorkstations() {
-        User currentUser = UserContext.get();
-        if (currentUser == null) {
-            throw new UnauthorizedException("Session invalid or expired.");
-        }
-        if (currentUser.getRole() != UserRole.ADMIN) {
-            throw new ForbiddenException("Admin access required");
-        }
 
-        List<StudentWorkstationDto> list = leaderboardRepository.findAll().stream()
-                .map(entry -> StudentWorkstationDto.builder()
-                        .name(entry.getUser().getName())
-                        .rollNumber(entry.getUser().getRollNo())
-                        .contestId(entry.getContest().getId())
-                        .violations(entry.getViolations())
-                        .status(entry.getViolations() >= 3 ? "Locked" : "Active")
-                        .build())
-                .toList();
-
-        return ResponseEntity.ok(list);
-    }
 
     @PostMapping("/{contestId}/students/{rollNumber}/violation")
     public ResponseEntity<?> recordViolation(

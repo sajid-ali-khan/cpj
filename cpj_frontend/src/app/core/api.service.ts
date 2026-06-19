@@ -25,8 +25,8 @@ export class ApiService {
   sendOtp(rollNumber: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/student/login/send-otp`, { rollNumber }, { headers: this.getHeaders() });
   }
-  verifyOtp(rollNumber: string, otp: string, contestId?: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/student/login/verify-otp`, { rollNumber, otp, contestId }, { headers: this.getHeaders() });
+  verifyOtp(rollNumber: string, otp: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/student/login/verify-otp`, { rollNumber, otp }, { headers: this.getHeaders() });
   }
   loginAdmin(username: string, password: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/admin/login`, { username, password }, { headers: this.getHeaders() });
@@ -100,11 +100,7 @@ export class ApiService {
   createTestCase(problemId: number, body: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/admin/problems/${problemId}/test-cases`, body, { headers: this.getHeaders() });
   }
-  uploadTestCaseCSV(problemId: number, file: File): Observable<any> {
-    const fd = new FormData();
-    fd.append('file', file);
-    return this.http.post(`${this.baseUrl}/admin/problems/${problemId}/test-cases/csv`, fd, { headers: this.getHeaders(true) });
-  }
+
   getTestCases(problemId: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/problems/${problemId}/test-cases`, { headers: this.getHeaders() });
   }
@@ -134,7 +130,6 @@ export class ApiService {
     return this.http.post(`${this.baseUrl}/students/${rollNumber}/reset-violations`, {}, { headers: this.getHeaders() });
   }
   getStudents(contestId: number): Observable<any> {
-    const url = contestId ? `${this.baseUrl}/contests/${contestId}/workstations` : `${this.baseUrl}/contests/workstations`;
-    return this.http.get(url, { headers: this.getHeaders() });
+    return this.http.get(`${this.baseUrl}/contests/${contestId}/workstations`, { headers: this.getHeaders() });
   }
 }

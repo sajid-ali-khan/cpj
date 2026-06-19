@@ -24,6 +24,12 @@ public class AuthController {
     @Value("${cpj.admin.password}")
     private String adminPassword;
 
+    
+    @GetMapping("/status")
+    public Map<String, Object> status() {
+        return Map.of("status", true, "timestamp", System.currentTimeMillis());
+    }
+
     @PostMapping("/student/login/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody SendOtpRequest request) {
         if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
@@ -72,7 +78,6 @@ public class AuthController {
             "user", Map.of(
                 "rollNumber", user.getRollNo(),
                 "name", user.getName(),
-                "contestId", request.getContestId() != null ? request.getContestId() : "",
                 "branch", user.getBranch() != null ? user.getBranch() : ""
             ),
             "userType", "student"
@@ -144,7 +149,6 @@ public class AuthController {
     public static class VerifyOtpRequest {
         private String rollNumber;
         private String otp;
-        private String contestId;
     }
 
     @Getter

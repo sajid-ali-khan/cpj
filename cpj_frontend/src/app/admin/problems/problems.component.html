@@ -82,40 +82,14 @@
         <p class="modal-subtitle" style="margin-top: -10px; margin-bottom: 15px; font-size: 13px; color: #8b949e;">Add testcases to evaluate submissions. At least one is required to finish.</p>
 
         <div class="card card-form" style="margin-bottom: 15px; padding: 15px;">
-          <div class="tabs-container">
-            <button (click)="addMode = 'manual'" [class.active]="addMode === 'manual'" class="tab-btn">Paste Text</button>
-            <button (click)="addMode = 'file'" [class.active]="addMode === 'file'" class="tab-btn">Upload Files</button>
-            <button (click)="addMode = 'csv'" [class.active]="addMode === 'csv'" class="tab-btn">Bulk CSV</button>
+          <div class="card-form-row">
+            <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
+            <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
           </div>
-
-          @if (addMode === 'file') {
-            <div class="file-inputs">
-              <div class="file-box"><label>Input File (.txt/.in)</label><input type="file" (change)="onFileChange($event, 'tcInput')" /></div>
-              <div class="file-box"><label>Output File (.txt/.out)</label><input type="file" (change)="onFileChange($event, 'tcOutput')" /></div>
-            </div>
-          }
-
-          @if (addMode === 'csv') {
-            <div class="csv-input">
-              <label>Upload Test Cases CSV (1st col: stdin, 2nd col: expected output, 3rd col: isSample)</label>
-              <input type="file" accept=".csv" (change)="onCSVFileSelected($event)" />
-              @if (selectedCSVFile) {
-                <div class="selected-file">Selected: {{ selectedCSVFile.name }}</div>
-                <button (click)="uploadCSV()" class="btn btn-success btn-upload-csv">Upload CSV File</button>
-              }
-            </div>
-          }
-
-          @if (addMode !== 'csv') {
-            <div class="card-form-row">
-              <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
-              <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
-            </div>
-            <div class="card-form-actions">
-              <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
-              <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
-            </div>
-          }
+          <div class="card-form-actions">
+            <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
+            <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
+          </div>
         </div>
 
         @if (testCases.length === 0) {
@@ -162,40 +136,14 @@
     </div>
 
     <div class="card card-form">
-      <div class="tabs-container">
-        <button (click)="addMode = 'manual'" [class.active]="addMode === 'manual'" class="tab-btn">Paste Text</button>
-        <button (click)="addMode = 'file'" [class.active]="addMode === 'file'" class="tab-btn">Upload Files</button>
-        <button (click)="addMode = 'csv'" [class.active]="addMode === 'csv'" class="tab-btn">Bulk CSV</button>
+      <div class="card-form-row">
+        <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
+        <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
       </div>
-
-      @if (addMode === 'file') {
-        <div class="file-inputs">
-          <div class="file-box"><label>Input File (.txt/.in)</label><input type="file" (change)="onFileChange($event, 'tcInput')" /></div>
-          <div class="file-box"><label>Output File (.txt/.out)</label><input type="file" (change)="onFileChange($event, 'tcOutput')" /></div>
-        </div>
-      }
-
-      @if (addMode === 'csv') {
-        <div class="csv-input">
-          <label>Upload Test Cases CSV (1st col: stdin, 2nd col: expected output, 3rd col: isSample)</label>
-          <input type="file" accept=".csv" (change)="onCSVFileSelected($event)" />
-          @if (selectedCSVFile) {
-            <div class="selected-file">Selected: {{ selectedCSVFile.name }}</div>
-            <button (click)="uploadCSV()" class="btn btn-success btn-upload-csv">Upload CSV File</button>
-          }
-        </div>
-      }
-
-      @if (addMode !== 'csv') {
-        <div class="card-form-row">
-          <div class="form-col"><label class="card-form-label font-bold">Stdin Input</label><textarea [(ngModel)]="tcInput" placeholder="Stdin..." class="card-form-textarea"></textarea></div>
-          <div class="form-col"><label class="card-form-label font-bold">Expected Output</label><textarea [(ngModel)]="tcOutput" placeholder="Expected output..." class="card-form-textarea"></textarea></div>
-        </div>
-        <div class="card-form-actions">
-          <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
-          <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
-        </div>
-      }
+      <div class="card-form-actions">
+        <div class="checkbox-container"><input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" /><label for="tcIsSample">Is Sample Test Case</label></div>
+        <button (click)="addTestCase()" class="btn btn-success btn-add-tc" [disabled]="!tcOutput">Add Testcase</button>
+      </div>
     </div>
 
     @if (testCases.length === 0) {

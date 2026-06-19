@@ -1,0 +1,497 @@
+= Competitive Programming Judge (CPJ) API Guide
+:toc: left
+:toclevels: 3
+:sectnums:
+:sectlinks:
+
+Welcome to the Competitive Programming Judge (CPJ) API documentation.
+
+== Global Configurations & Authentication
+
+Most API requests require authentication. Requests are validated via custom interceptors.
+
+=== Request Headers
+All authenticated endpoints require the session token in the **`X-Roll-No`** header:
+* `X-Roll-No`: Active session token (e.g., `STU-SESSION-...` or `ADM-SESSION-...`).
+
+Alternatively, the token can be passed as a query parameter: `?rollNo=<token>`.
+
+---
+
+== Authentication API
+
+=== Send Student OTP
+Requests an OTP to be sent to the student's email address mapped to their roll number.
+
+* **Path**: `/api/student/login/send-otp`
+* **Method**: `POST`
+* **Security**: Public
+
+==== Request Structure
+include::{snippets}/student-login-send-otp/http-request.adoc[]
+
+==== Request Fields
+include::{snippets}/student-login-send-otp/request-fields.adoc[]
+
+==== Response Structure
+include::{snippets}/student-login-send-otp/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/student-login-send-otp/response-fields.adoc[]
+
+=== Verify Student OTP
+Verifies the OTP sent to the student's email. On success, returns a UUID session token.
+
+* **Path**: `/api/student/login/verify-otp`
+* **Method**: `POST`
+* **Security**: Public
+
+==== Request Structure
+include::{snippets}/student-login-verify-otp/http-request.adoc[]
+
+==== Request Fields
+include::{snippets}/student-login-verify-otp/request-fields.adoc[]
+
+==== Response Structure
+include::{snippets}/student-login-verify-otp/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/student-login-verify-otp/response-fields.adoc[]
+
+=== Admin Login
+Logs in an administrator using their password configured in application properties.
+
+* **Path**: `/api/admin/login`
+* **Method**: `POST`
+* **Security**: Public
+
+==== Request Payload Example
+[source,json]
+----
+{
+  "username": "admin",
+  "password": "secretPassword"
+}
+----
+
+==== Response Payload Example
+[source,json]
+----
+{
+  "token": "ADM-SESSION-8ac2...",
+  "user": {
+    "username": "admin",
+    "name": "Super Admin",
+    "role": "ADMIN"
+  },
+  "userType": "admin"
+}
+----
+
+---
+
+== Contest API (Public/Student)
+
+=== List All Contests
+Retrieves a list of all contests in the system.
+
+* **Path**: `/api/contests`
+* **Method**: `GET`
+* **Security**: Authenticated (Student/Admin)
+
+==== Response Payload Example
+[source,json]
+----
+[
+  {
+    "id": 1,
+    "title": "Welcome Challenge",
+    "description": "Getting started challenge",
+    "startTime": "2026-06-18T10:00:00Z",
+    "durationMins": 60,
+    "status": "ENDED"
+  }
+]
+----
+
+=== Get Current/Active Contests
+Retrieves upcoming or ongoing contests.
+
+* **Path**: `/api/contests/current`
+* **Method**: `GET`
+* **Security**: Authenticated (Student/Admin)
+
+==== Response Structure
+include::{snippets}/contest-get-current/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/contest-get-current/response-fields.adoc[]
+
+=== Get Contest Detail
+Retrieves information about a specific contest.
+
+* **Path**: `/api/contests/{contestId}`
+* **Method**: `GET`
+* **Security**: Authenticated (Student/Admin)
+
+=== Get Contest Problems
+Retrieves problems mapped to a specific contest.
+
+* **Path**: `/api/contests/{contestId}/problems`
+* **Method**: `GET`
+* **Security**: Authenticated (Student/Admin)
+
+=== Register for Contest
+Registers the currently logged-in student for a contest.
+
+* **Path**: `/api/contests/{contestId}/register`
+* **Method**: `POST`
+* **Security**: Authenticated (Student)
+
+=== Final Submit Contest
+Submits and locks the contest for the currently logged-in student, preventing further code executions.
+
+* **Path**: `/api/contests/{contestId}/submit`
+* **Method**: `POST`
+* **Security**: Authenticated (Student)
+
+=== Get Leaderboard
+Retrieves the real-time leaderboard ranking list for the contest.
+
+* **Path**: `/api/contests/{contestId}/leaderboard`
+* **Method**: `GET`
+* **Security**: Authenticated (Student/Admin)
+
+==== Response Structure
+include::{snippets}/contest-get-leaderboard/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/contest-get-leaderboard/response-fields.adoc[]
+
+=== Record Cheating Violation
+Increments or updates the tab-switch/cheating violation count for a student in a contest. If the count reaches 3, the workstation is locked.
+
+* **Path**: `/api/contests/{contestId}/students/{rollNumber}/violation`
+* **Method**: `POST`
+* **Security**: Authenticated (Student/Admin)
+
+==== Request Body
+[source,json]
+----
+{
+  "violations": 3
+}
+----
+
+==== Response Body
+[source,json]
+----
+{
+  "success": true,
+  "violations": 3,
+  "status": "Locked"
+}
+----
+
+=== Get Contest Workstations
+Retrieves all workstation statuses (active or locked due to violations) for a specific contest.
+
+* **Path**: `/api/contests/{contestId}/workstations`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+
+
+---
+
+== Submission API
+
+=== Submit Solution
+Submits source code for official evaluation against all hidden test cases.
+
+* **Path**: `/api/submit`
+* **Method**: `POST`
+* **Security**: Authenticated (Student)
+
+==== Request Headers
+include::{snippets}/submission-submit/request-headers.adoc[]
+
+==== Request Structure
+include::{snippets}/submission-submit/http-request.adoc[]
+
+==== Request Fields
+include::{snippets}/submission-submit/request-fields.adoc[]
+
+==== Response Structure
+include::{snippets}/submission-submit/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/submission-submit/response-fields.adoc[]
+
+=== Compile & Run
+Compiles and runs code against either sample test cases or custom user input. Does not affect leaderboard points.
+
+* **Path**: `/api/compile`
+* **Method**: `POST`
+* **Security**: Authenticated (Student)
+
+==== Request Headers
+include::{snippets}/submission-compile/request-headers.adoc[]
+
+==== Request Structure
+include::{snippets}/submission-compile/http-request.adoc[]
+
+==== Request Fields
+include::{snippets}/submission-compile/request-fields.adoc[]
+
+==== Response Structure
+include::{snippets}/submission-compile/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/submission-compile/response-fields.adoc[]
+
+=== List Personal Submissions
+Lists all historical solutions submitted by the authenticated student for a specific contest.
+
+* **Path**: `/api/submissions?contestId={contestId}`
+* **Method**: `GET`
+* **Security**: Authenticated (Student)
+
+---
+
+== Student Info API
+
+=== Get Registrations
+Retrieves all contests a student is registered in and their participant statuses/violations.
+
+* **Path**: `/api/students/{rollNumber}/registrations`
+* **Method**: `GET`
+* **Security**: Authenticated (Student/Admin)
+
+=== Reset Student Violations
+Resets tab-switching violation counts to 0 and unlocks the workspace for a student across all active contests.
+
+* **Path**: `/api/students/{rollNumber}/reset-violations`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+---
+
+== Live Event SSE API
+
+=== SSE Live Leaderboard
+Exposes a Server-Sent Events (SSE) stream that broadcasts updated leaderboard rankings whenever submissions are evaluated or violations occur.
+
+* **Path**: `/api/events/leaderboard`
+* **Method**: `GET`
+* **Security**: Public
+
+---
+
+== Admin Contest Management API
+
+=== Create Contest
+Creates a new contest.
+
+* **Path**: `/api/admin/contests`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+=== List Contests
+Lists all contests with full administration details.
+
+* **Path**: `/api/admin/contests`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Get Contest Detail
+Gets detailed information about a contest, including assigned problem IDs.
+
+* **Path**: `/api/admin/contests/{id}`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Start Contest
+Forces a contest to start immediately, changing its status to `ONGOING`.
+
+* **Path**: `/api/admin/contests/{id}/start`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+=== End Contest
+Forces a contest to end immediately, changing its status to `ENDED`.
+
+* **Path**: `/api/admin/contests/{id}/end`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+=== Update Contest
+Modifies contest parameters (title, description, duration, and assigned problem list).
+
+* **Path**: `/api/admin/contests/{id}`
+* **Method**: `PUT`
+* **Security**: Authenticated (Admin only)
+
+=== Delete Contest
+Removes a contest and its mappings.
+
+* **Path**: `/api/admin/contests/{id}`
+* **Method**: `DELETE`
+* **Security**: Authenticated (Admin only)
+
+=== Get Contest Submissions
+Retrieves all submissions made by all students for a specific contest.
+
+* **Path**: `/api/admin/contests/{id}/submissions`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Get Contest Registrations
+Retrieves all students currently registered for the contest.
+
+* **Path**: `/api/admin/contests/{contestId}/registrations`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Register Students Bulk
+Registers multiple students to a contest by passing their roll numbers in a JSON Array.
+
+* **Path**: `/api/admin/contests/{contestId}/registrations`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+=== Delete Student Registration
+Removes a student's registration from a contest.
+
+* **Path**: `/api/admin/contests/{contestId}/registrations/{userId}`
+* **Method**: `DELETE`
+* **Security**: Authenticated (Admin only)
+
+---
+
+== Admin Problem Management API
+
+=== Create Problem
+Creates a coding challenge.
+
+* **Path**: `/api/admin/problems`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+=== List Problems
+Lists all coding challenges.
+
+* **Path**: `/api/admin/problems`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Get Problem Detail
+Retrieves detail of a coding challenge.
+
+* **Path**: `/api/admin/problems/{id}`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Update Problem
+Updates details of a coding challenge.
+
+* **Path**: `/api/admin/problems/{id}`
+* **Method**: `PUT`
+* **Security**: Authenticated (Admin only)
+
+=== Delete Problem
+Deletes a coding challenge.
+
+* **Path**: `/api/admin/problems/{id}`
+* **Method**: `DELETE`
+* **Security**: Authenticated (Admin only)
+
+---
+
+== Admin Test Case Management API
+
+=== Create Test Case
+Creates a test case (input and expected output) for a problem.
+
+* **Path**: `/api/admin/problems/{problemId}/test-cases`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+=== Update Test Case
+Updates a test case.
+
+* **Path**: `/api/admin/test-cases/{id}`
+* **Method**: `PUT`
+* **Security**: Authenticated (Admin only)
+
+=== List Test Cases
+Lists all test cases configured for a specific problem.
+
+* **Path**: `/api/admin/problems/{problemId}/test-cases`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Delete Test Case
+Removes a test case configuration.
+
+* **Path**: `/api/admin/test-cases/{id}`
+* **Method**: `DELETE`
+* **Security**: Authenticated (Admin only)
+
+---
+
+== Admin User Management API
+
+=== Create User
+Creates a student or administrator.
+
+* **Path**: `/api/admin/users`
+* **Method**: `POST`
+* **Security**: Authenticated (Admin only)
+
+==== Request Headers
+include::{snippets}/admin-create-user/request-headers.adoc[]
+
+==== Request Structure
+include::{snippets}/admin-create-user/http-request.adoc[]
+
+==== Request Fields
+include::{snippets}/admin-create-user/request-fields.adoc[]
+
+==== Response Structure
+include::{snippets}/admin-create-user/http-response.adoc[]
+
+==== Response Fields
+include::{snippets}/admin-create-user/response-fields.adoc[]
+
+=== List/Search Users
+Searches users by name or roll number with pagination.
+
+* **Path**: `/api/admin/users?query={query}&page={page}&size={size}`
+* **Method**: `GET`
+* **Security**: Authenticated (Admin only)
+
+=== Update User
+Modifies user profile fields (name, rollNo, email, branch, and role).
+
+* **Path**: `/api/admin/users/{id}`
+* **Method**: `PUT`
+* **Security**: Authenticated (Admin only)
+
+=== Delete User
+Removes a user from the system.
+
+* **Path**: `/api/admin/users/{id}`
+* **Method**: `DELETE`
+* **Security**: Authenticated (Admin only)
+
+---
+
+== Internal Callback API
+
+=== Judge0 Callback
+Receives compilation and run verdicts asynchronously from Judge0 after processing submissions.
+
+* **Path**: `/internal/judge0-callback`
+* **Method**: `POST`
+* **Security**: Internal (Secret/Unintercepted)

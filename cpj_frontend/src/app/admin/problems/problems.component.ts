@@ -37,9 +37,7 @@ export class ProblemsComponent implements OnInit {
   tcInput = '';
   tcOutput = '';
   tcIsSample = false;
-  addMode: 'manual' | 'file' | 'csv' = 'manual';
   activeInspector: any = null;
-  selectedCSVFile: File | null = null;
 
   // Custom Alerts & Confirms
   alertMsg: string | null = null;
@@ -169,37 +167,7 @@ export class ProblemsComponent implements OnInit {
     });
   }
 
-  readFile(file: File, cb: (res: string) => void): void {
-    const r = new FileReader();
-    r.onload = (e) => cb(e.target?.result as string || '');
-    r.readAsText(file);
-  }
 
-  onFileChange(e: any, key: 'tcInput' | 'tcOutput'): void {
-    const f = e.target.files?.[0];
-    if (f) this.readFile(f, (txt) => this[key] = txt);
-  }
-
-  onCSVFileSelected(e: any): void {
-    this.selectedCSVFile = e.target.files?.[0] || null;
-  }
-
-  uploadCSV(): void {
-    if (this.selectedCSVFile && this.selectedProblemId !== null) {
-      this.apiService.uploadTestCaseCSV(this.selectedProblemId, this.selectedCSVFile).subscribe({
-        next: () => {
-          this.showAlert('CSV file uploaded and processed successfully.');
-          if (this.showTestCases) {
-            this.viewTestCases(this.selectedProblemId!, this.selectedProblemTitle);
-          } else {
-            this.loadTestCasesForCurrent();
-          }
-          this.selectedCSVFile = null;
-        },
-        error: (err) => this.showAlert(err.error?.error || 'Failed to upload CSV')
-      });
-    }
-  }
 
   private resetProblemForm(): void {
     this.title = ''; this.description = ''; this.constraints = '';
