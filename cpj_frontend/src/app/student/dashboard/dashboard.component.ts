@@ -17,7 +17,6 @@ import { AuthService } from '../../core/auth.service';
 })
 export class DashboardComponent implements OnInit {
   contests: any[] = [];
-  registrations: any[] = [];
   rollNo = '';
   name = '';
 
@@ -29,6 +28,12 @@ export class DashboardComponent implements OnInit {
   // Contest Details Modal State
   showContestDetails = false;
   selectedContestDetails: any = null;
+
+  // Pagination
+  currentPage = 1;
+  pageSize = 5;
+  totalPages = 1;
+  totalElements = 0;
 
   constructor(
     private apiService: ApiService,
@@ -47,27 +52,29 @@ export class DashboardComponent implements OnInit {
   }
 
   loadData(): void {
-    this.apiService.getContests().subscribe({
-      next: (data) => this.contests = data
+    this.apiService.getContests(this.currentPage - 1, this.pageSize).subscribe({
+      next: (data) => {
+        this.contests = data.content || [];
+        this.totalPages = data.totalPages || 1;
+        this.totalElements = data.totalElements || 0;
+      }
     });
-
-    this.apiService.getStudentRegistrations(this.rollNo).subscribe({
-      next: (data) => this.registrations = data
-    });
   }
 
-  isRegistered(contestId: number): boolean {
-    return this.registrations.some(r => Number(r.contestId) === Number(contestId));
+  prevPage(): void {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+      this.loadData();
+    }
   }
 
-  getRegistrationStatus(contestId: number): string {
-    const reg = this.registrations.find(r => Number(r.contestId) === Number(contestId));
-    return reg ? reg.status : '';
+  nextPage(): void {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+      this.loadData();
+    }
   }
-  hasViolatedLimit(contestId: number): boolean {
-    const reg = this.registrations.find(r => Number(r.contestId) === Number(contestId));
-    return reg ? reg.violations >= 3 : false;
-  }
+
 
   register(contestId: number): void {
     this.apiService.registerForContest(contestId).subscribe({

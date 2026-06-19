@@ -24,6 +24,12 @@ export class ContestsComponent implements OnInit {
   showDetailModal = false;
   selectedContestDetail: any = null;
 
+  // Contest Detail Page State
+  leaderboardData: any[] = [];
+  eligibleStudents: any[] = [];
+  studentListInput = '';
+  submittingEligible = false;
+
   // Pagination
   pageSize = 10;
   currentPage = 1;
@@ -126,9 +132,85 @@ export class ContestsComponent implements OnInit {
     this.apiService.getAdminContest(contestId).subscribe({
       next: (data) => {
         this.selectedContestDetail = data;
-        this.showDetailModal = true;
+        this.loadLeaderboard(contestId);
+        this.loadEligibleStudents(contestId);
       },
       error: (err) => alert(err.error?.error || 'Failed to retrieve contest details')
+    });
+  }
+
+  loadLeaderboard(contestId: number): void {
+    this.apiService.getLeaderboard(contestId).subscribe({
+      next: (data) => this.leaderboardData = data,
+      error: (err) => console.error('Failed to load leaderboard', err)
+    });
+  }
+
+  loadEligibleStudents(contestId: number): void {
+    this.apiService.getAdminContestRegistrations(contestId).subscribe({
+      next: (data) => this.eligibleStudents = data,
+      error: (err) => console.error('Failed to load eligible students', err)
+    });
+  }
+
+  closeContestDetail(): void {
+    this.selectedContestDetail = null;
+    this.leaderboardData = [];
+    this.eligibleStudents = [];
+    this.studentListInput = '';
+    this.loadData();
+  }
+
+  addEligibleStudents(): void {
+    if (!this.studentListInput.trim() || !this.selectedContestDetail) return;
+    const rollNos = this.studentListInput
+      .split(/[\n,]+/)
+      .map(r => r.trim())
+      .filter(Boolean);
+    
+    if (rollNos.length === 0) return;
+
+    this.submittingEligible = true;
+    const contestId = this.selectedContestDetail.contest.id;
+    this.apiService.registerStudentsBulk(contestId, rollNos).subscribe({
+      next: (res) => {
+        this.submittingEligible = false;
+        this.studentListInput = '';
+        alert(res.message || 'Students made eligible successfully.');
+        this.loadLeaderboard(contestId);
+        this.loadEligibleStudents(contestId);
+      },
+      error: (err) => {
+        this.submittingEligible = false;
+        alert(err.error?.error || 'Failed to make students eligible.');
+      }
+    });
+  }
+
+  removeStudentRegistration(userId: number): void {
+    if (!this.selectedContestDetail) return;
+    if (confirm('Are you sure you want to remove this student eligibility?')) {
+      const contestId = this.selectedContestDetail.contest.id;
+      this.apiService.deleteStudentRegistration(contestId, userId).subscribe({
+        next: () => {
+          alert('Student registration removed successfully.');
+          this.loadLeaderboard(contestId);
+          this.loadEligibleStudents(contestId);
+        },
+        error: (err) => alert(err.error?.error || 'Failed to remove student registration')
+      });
+    }
+  }
+
+  resetStudentViolations(rollNo: string): void {
+    this.apiService.resetStudentViolations(rollNo).subscribe({
+      next: () => {
+        alert('Violations reset successfully.');
+        if (this.selectedContestDetail) {
+          this.loadLeaderboard(this.selectedContestDetail.contest.id);
+        }
+      },
+      error: (err) => alert(err.error?.error || 'Failed to reset violations')
     });
   }
 
@@ -137,7 +219,7 @@ export class ContestsComponent implements OnInit {
       this.apiService.startContest(contestId).subscribe({
         next: () => {
           this.loadData();
-          if (this.showDetailModal && this.selectedContestDetail?.contest?.id === contestId) {
+          if (this.selectedContestDetail?.contest?.id === contestId) {
             this.viewContestDetail(contestId);
           }
           alert('Contest started successfully.');

@@ -3,7 +3,7 @@
  * Purpose: Student coding workspace. Manages code editor (Monaco) and UI layouts.
  */
 import { Component, OnInit, AfterViewInit, HostListener } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common'; import { FormsModule } from '@angular/forms';
 import { ContestArenaStateService } from './contest-arena-state.service';
 import { ApiService } from '../../core/api.service';
@@ -11,7 +11,7 @@ import { getSavedCode, saveCode, getMonacoLanguage } from './contest-arena.helpe
 
 @Component({
   selector: 'app-student-contest-arena', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink], providers: [ContestArenaStateService],
+  imports: [CommonModule, FormsModule], providers: [ContestArenaStateService],
   templateUrl: './contest-arena.component.html', styleUrl: './contest-arena.component.css'
 })
 export class ContestArenaComponent implements OnInit, AfterViewInit {

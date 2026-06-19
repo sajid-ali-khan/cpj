@@ -31,8 +31,8 @@ export class ApiService {
   loginAdmin(username: string, password: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/admin/login`, { username, password }, { headers: this.getHeaders() });
   }
-  getContests(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/contests`, { headers: this.getHeaders() });
+  getContests(page = 0, size = 10): Observable<any> {
+    return this.http.get(`${this.baseUrl}/contests?page=${page}&size=${size}`, { headers: this.getHeaders() });
   }
   getCurrentContest(): Observable<any> {
     return this.http.get(`${this.baseUrl}/contests/current`, { headers: this.getHeaders() });

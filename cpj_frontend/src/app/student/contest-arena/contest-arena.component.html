@@ -20,7 +20,7 @@
     <div class="security-overlay"><div class="security-card"><h3>Contest Security Lock</h3><p>This contest must be written in fullscreen mode to ensure compliance. Switching tabs or exiting fullscreen will record a violation.</p><button (click)="enterFullscreen()" class="btn btn-success">Enter Fullscreen & Start Exam</button></div></div>
   } @else {
     <div class="header-bar">
-      <div><a routerLink="/student/dashboard" class="back-link">&larr; Back to Dashboard</a><h2 class="header-title">Coding Arena</h2></div>
+      <div><h2 class="header-title">Coding Arena</h2></div>
       <div class="problem-tabs">@for (prob of state.problems; track prob.problemId; let i = $index) { <button (click)="onProblemChange(i)" class="btn btn-problem" [class.btn-primary]="state.activeQ === i" [class.solved]="state.isSolved(prob.problemId)">Q{{ i + 1 }} ({{ prob.points }} pts)</button> }</div>
       <div class="header-actions"><button (click)="showLeaderboardModal = true; state.loadLeaderboard(state.contestId)" class="btn">Leaderboard</button><button (click)="showSubmitModal = true; state.submitError = ''" class="btn btn-danger">Submit Entire Exam</button></div>
     </div>
@@ -155,11 +155,35 @@
       <div class="modal-header"><h3 class="modal-title">Contest Leaderboard</h3><button (click)="showLeaderboardModal = false" class="btn modal-close-btn">Close</button></div>
       <div class="panel-left-content">
         @if (state.leaderboard.length === 0) { <div class="no-submissions">No rankings logged yet.</div> } @else {
+          <div style="display: flex; gap: 16px; margin-bottom: 12px; font-size: 11px; flex-wrap: wrap; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); text-align: left;">
+            <span style="font-weight: bold; color: var(--text-muted);">Status Legend:</span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(139, 148, 158, 0.6); display: inline-block;"></span> Eligible / Not Joined
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(56, 139, 253, 0.6); display: inline-block;"></span> Registered / Idle
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(242, 193, 46, 0.6); display: inline-block;"></span> Active / Coding
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(46, 160, 67, 0.6); display: inline-block;"></span> Submitted / Ended
+            </span>
+            <span style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+              <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(244, 67, 54, 0.8); display: inline-block;"></span> Locked Out (Violations &ge; 3)
+            </span>
+          </div>
+
           <table>
             <thead><tr><th>Rank</th><th>Name</th><th>Roll No</th><th style="text-align: right;">Score</th></tr></thead>
             <tbody>
               @for (row of state.leaderboard; track row.rollNo; let idx = $index) {
-                <tr [style.background-color]="row.rollNo === state.rollNo ? 'rgba(35, 134, 54, 0.1)' : 'transparent'"
+                <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 
+                                              row.status === 'FINISHED' ? 'rgba(46, 160, 67, 0.06)' : 
+                                              row.status === 'WRITING' ? 'rgba(242, 193, 46, 0.06)' : 
+                                              row.status === 'REGISTERED' ? 'rgba(56, 139, 253, 0.05)' : 
+                                              'rgba(139, 148, 158, 0.05)'"
+                    [style.border-left]="row.rollNo === state.rollNo ? '4px solid #56d364' : 'none'"
                     (click)="row.problems && row.problems.length > 0 && (row.expanded = !row.expanded)"
                     [style.cursor]="row.problems && row.problems.length > 0 ? 'pointer' : 'default'">
                   <td style="font-weight: bold; font-family: monospace;">

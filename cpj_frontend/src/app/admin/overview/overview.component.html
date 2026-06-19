@@ -61,6 +61,26 @@
           <input type="text" [(ngModel)]="leaderboardSearchQuery" placeholder="Search student by name or roll number..." style="flex: 1; padding: 6px 10px; font-size: 13px; border-radius: 4px; border: 1px solid var(--border-color); background: #0d1117; color: var(--text-bright);" />
           @if (leaderboardSearchQuery) { <button (click)="leaderboardSearchQuery = ''" class="btn" style="padding: 4px 10px; font-size: 12px;">Clear</button> }
         </div>
+
+        <div style="display: flex; gap: 16px; margin-bottom: 12px; font-size: 11px; flex-wrap: wrap; align-items: center; background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+          <span style="font-weight: bold; color: var(--text-muted);">Status Legend:</span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(139, 148, 158, 0.6); display: inline-block;"></span> Eligible / Not Joined
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(56, 139, 253, 0.6); display: inline-block;"></span> Registered / Idle
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(242, 193, 46, 0.6); display: inline-block;"></span> Active / Coding
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(46, 160, 67, 0.6); display: inline-block;"></span> Submitted / Ended
+          </span>
+          <span style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+            <span style="width: 10px; height: 10px; border-radius: 50%; background: rgba(244, 67, 54, 0.8); display: inline-block;"></span> Locked Out (Violations &ge; 3)
+          </span>
+        </div>
+
         @if (filteredLeaderboard.length === 0) { <div class="modal-empty">No matching students found.</div> }
         @else {
           <table>
@@ -73,7 +93,11 @@
             </thead>
             <tbody>
               @for (row of filteredLeaderboard; track row.rollNo; let idx = $index) {
-                <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 'transparent'"
+                <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 
+                                              row.status === 'FINISHED' ? 'rgba(46, 160, 67, 0.06)' : 
+                                              row.status === 'WRITING' ? 'rgba(242, 193, 46, 0.06)' : 
+                                              row.status === 'REGISTERED' ? 'rgba(56, 139, 253, 0.05)' : 
+                                              'rgba(139, 148, 158, 0.05)'"
                     (click)="row.problems && row.problems.length > 0 && (row.expanded = !row.expanded)"
                     [style.cursor]="row.problems && row.problems.length > 0 ? 'pointer' : 'default'">
                   <td class="rank-cell">
