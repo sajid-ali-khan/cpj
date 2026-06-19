@@ -485,13 +485,5 @@ Removes a user from the system.
 * **Method**: `DELETE`
 * **Security**: Authenticated (Admin only)
 
+
 ---
-
-== Internal Callback API
-
-=== Judge0 Callback
-Receives compilation and run verdicts asynchronously from Judge0 after processing submissions.
-
-* **Path**: `/internal/judge0-callback`
-* **Method**: `POST`
-* **Security**: Internal (Secret/Unintercepted)

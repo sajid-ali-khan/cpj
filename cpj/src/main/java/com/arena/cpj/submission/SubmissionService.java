@@ -143,11 +143,6 @@ public class SubmissionService {
                 .toList();
     }
 
-    @Transactional
-    public void handleCallback(Long submissionId, int testCaseIndex, Judge0CallbackPayload payload) {
-        log.warn("Ignoring Judge0 callback for submission {} — judging uses synchronous wait mode", submissionId);
-    }
-
     private void validateSubmitRequest(Long contestId, Long problemId, String code, Integer languageId) {
         if (contestId == null) {
             throw new BadRequestException("contestId is required");
@@ -295,122 +290,6 @@ public class SubmissionService {
                     .status("Runtime Error")
                     .output(e.getMessage())
                     .consoleOutput("")
-                    .build();
-        }
-    }
-
-    @Transactional
-    public StudentSubmitResponse submitSynchronous(SubmitRequest request) {
-        User user = com.arena.cpj.auth.UserContext.get();
-        if (user == null) {
-            throw new com.arena.cpj.auth.UnauthorizedException("Session invalid or expired. Please log in again.");
-        }
-
-        Contest contest = contestRepository.findById(request.getContestId())
-                .orElseThrow(() -> new NotFoundException("Contest not found: " + request.getContestId()));
-
-        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contest.getId(), user.getId())
-                .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
-        if (entry.getStatus() == ParticipantStatus.FINISHED) {
-            throw new ForbiddenException("You have already submitted this contest");
-        }
-
-        if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
-            throw new BadRequestException("Contest is not active");
-        }
-        if (contest.isExpired()) {
-            throw new BadRequestException("Contest has ended");
-        }
-
-        Problem problem = problemRepository.findById(request.getQuestionId())
-                .orElseThrow(() -> new NotFoundException("Problem not found: " + request.getQuestionId()));
-
-        int judge0LangId = getLanguageId(request.getLanguage());
-
-        Submission submission = Submission.builder()
-                .user(user)
-                .contest(contest)
-                .problem(problem)
-                .code(request.getCode())
-                .languageId(judge0LangId)
-                .verdict(Verdict.PENDING)
-                .build();
-        submission = submissionRepository.save(submission);
-        Long submissionId = submission.getId();
-
-        List<TestCase> allCases = testCaseRepository.findByProblemId(problem.getId());
-
-        if (allCases.isEmpty()) {
-            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false, 0, 0);
-            return StudentSubmitResponse.builder()
-                    .success(false)
-                    .verdict("Runtime Error")
-                    .passed(0)
-                    .total(0)
-                    .build();
-        }
-
-        List<Judge0SubmissionRequest> judgeRequests = allCases.stream()
-                .map(tc -> Judge0SubmissionRequest.builder()
-                        .sourceCode(request.getCode())
-                        .languageId(judge0LangId)
-                        .stdin(tc.getStdin())
-                        .expectedOutput(tc.getExpectedOutput())
-                        .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
-                        .memoryLimitKb(judge0Properties.getMemoryLimitKb())
-                        .build())
-                .toList();
-
-        try {
-            List<Judge0CallbackPayload> results = judge0Client.submitBatchAndWait(judgeRequests);
-
-            if (!results.isEmpty() && results.get(0).getToken() != null) {
-                submission.setJudge0Token(results.get(0).getToken());
-                submissionRepository.save(submission);
-            }
-
-            Verdict finalVerdict = Verdict.ACCEPTED;
-            Integer timeMs = null;
-            Integer memoryKb = null;
-            int passedCount = 0;
-
-            for (int i = 0; i < results.size(); i++) {
-                Judge0CallbackPayload result = results.get(i);
-                int statusId = result.getStatus() != null ? result.getStatus().getId() : 0;
-                Verdict verdict = Judge0StatusMapper.toVerdict(statusId);
-
-                Integer currentMs = parseTimeMs(result.getTime());
-                if (currentMs != null && (timeMs == null || currentMs > timeMs)) {
-                    timeMs = currentMs;
-                }
-                if (result.getMemory() != null && (memoryKb == null || result.getMemory() > memoryKb)) {
-                    memoryKb = result.getMemory();
-                }
-
-                if (verdict == Verdict.ACCEPTED) {
-                    passedCount++;
-                } else if (finalVerdict == Verdict.ACCEPTED) {
-                    finalVerdict = verdict;
-                }
-            }
-
-            submissionResultService.finalize(submissionId, finalVerdict, timeMs, memoryKb, finalVerdict == Verdict.ACCEPTED, passedCount, allCases.size());
-
-            return StudentSubmitResponse.builder()
-                    .success(finalVerdict == Verdict.ACCEPTED)
-                    .verdict(finalVerdict.name().replace("_", " "))
-                    .passed(passedCount)
-                    .total(allCases.size())
-                    .build();
-
-        } catch (Exception e) {
-            log.error("Synchronous submission judge failed", e);
-            submissionResultService.finalize(submissionId, Verdict.RUNTIME_ERROR, null, null, false, 0, allCases.size());
-            return StudentSubmitResponse.builder()
-                    .success(false)
-                    .verdict("Runtime Error")
-                    .passed(0)
-                    .total(allCases.size())
                     .build();
         }
     }

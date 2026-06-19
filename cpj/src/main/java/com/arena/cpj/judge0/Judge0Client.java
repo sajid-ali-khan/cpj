@@ -202,69 +202,6 @@ public class Judge0Client {
         return decodePayloads(response.getSubmissions());
     }
 
-    // ─── Single-submission API (kept for reference / future use) ────────────
-
-    /** Submit a single submission with {@code wait=false}, returns token. */
-    public String submitAsync(Judge0SubmissionRequest request) {
-        Judge0SubmissionRequest encodedRequest = encodeRequest(request);
-        String bodyJson = "";
-        try {
-            bodyJson = objectMapper.writeValueAsString(encodedRequest);
-            log.info("Sending submitAsync request to Judge0: {}", bodyJson);
-        } catch (Exception e) {
-            log.warn("Failed to log submitAsync request payload", e);
-        }
-
-        String rawResponse = restClient.post()
-                .uri(properties.getBaseUrl() + "/submissions?base64_encoded=true&wait=false")
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(bodyJson)
-                .retrieve()
-                .body(String.class);
-
-        log.info("Received submitAsync raw response from Judge0: {}", rawResponse);
-
-        Judge0SubmissionResponse response;
-        try {
-            response = objectMapper.readValue(rawResponse, Judge0SubmissionResponse.class);
-        } catch (Exception e) {
-            log.error("Failed to parse submitAsync response", e);
-            throw new IllegalStateException("Failed to parse Judge0 submitAsync response", e);
-        }
-        if (response == null || response.getToken() == null) {
-            throw new IllegalStateException("Judge0 returned no token");
-        }
-        return response.getToken();
-    }
-
-    /** Fetches the current state of a single submission by token. */
-    public Judge0CallbackPayload getSubmission(String token) {
-        log.info("Fetching single submission status from Judge0 for token: {}", token);
-        String rawResponse = restClient.get()
-                .uri(properties.getBaseUrl() + "/submissions/" + token + "?base64_encoded=true")
-                .retrieve()
-                .body(String.class);
-
-        log.info("Received getSubmission raw response from Judge0: {}", rawResponse);
-
-        Judge0CallbackPayload result;
-        try {
-            result = objectMapper.readValue(rawResponse, Judge0CallbackPayload.class);
-        } catch (Exception e) {
-            log.error("Failed to parse getSubmission response", e);
-            throw new IllegalStateException("Failed to parse Judge0 getSubmission response", e);
-        }
-        if (result == null) {
-            throw new IllegalStateException("Judge0 returned null for token " + token);
-        }
-        return decodePayload(result);
-    }
-
-    public String buildCallbackUrl(Long submissionId, int testCaseIndex) {
-        return properties.getCallbackBaseUrl()
-                + "/internal/callback?submissionId=" + submissionId
-                + "&testCaseIndex=" + testCaseIndex;
-    }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 

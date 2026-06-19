@@ -2,7 +2,6 @@ package com.arena.cpj.submission;
  
 import com.arena.cpj.common.NotFoundException;
 import com.arena.cpj.event.SseService;
-import com.arena.cpj.judge0.JudgeSessionTracker;
 import com.arena.cpj.leaderboard.LeaderboardService;
 import com.arena.cpj.submission.dto.VerdictEventDto;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,6 @@ import java.time.LocalDateTime;
 public class SubmissionResultService {
  
     private final SubmissionRepository submissionRepository;
-    private final JudgeSessionTracker sessionTracker;
     private final LeaderboardService leaderboardService;
     private final SseService sseService;
  
@@ -67,9 +65,6 @@ public class SubmissionResultService {
         }
  
         Runnable afterCommit = () -> {
-            log.info("Removing submission ID {} from JudgeSessionTracker", submissionId);
-            sessionTracker.remove(submissionId);
- 
             log.info("Sending SSE verdict event for user ID: {}, submission ID: {}, verdict: {}", userId, submissionId, verdict);
             sseService.sendVerdict(userId, VerdictEventDto.builder()
                     .submissionId(submission.getId())
