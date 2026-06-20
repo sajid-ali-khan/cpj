@@ -107,6 +107,7 @@ public class LeaderboardService {
                     return LeaderboardEntryDto.builder()
                             .rank(i + 1)
                             .userId(user.getId())
+                            .contestId(contestId)
                             .name(user.getName())
                             .rollNo(user.getRollNo())
                             .score(row.getScore())

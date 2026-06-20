@@ -31,7 +31,7 @@ public class AdminUserService {
 
         User user = User.builder()
                 .name(request.getName().trim())
-                .rollNo(request.getRollNo().trim())
+                .rollNo(request.getRollNo().trim().toUpperCase())
                 .email(request.getEmail().trim())
                 .branch(request.getBranch() != null ? request.getBranch().trim() : null)
                 .role(request.getRole() != null ? request.getRole() : UserRole.STUDENT)

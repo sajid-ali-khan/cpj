@@ -34,8 +34,8 @@
           @for (contest of contests; track contest.id) {
             <tr>
               <td>
-                <strong style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="viewContestDetails(contest.id)">{{ contest.name }}</strong>
-                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">{{ contest.title }}</p>
+                <strong style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="viewContestDetails(contest.id)">{{ contest.title }}</strong>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">{{ contest.description }}</p>
               </td>
               <td>{{ contest.startTime | date:'medium' }}</td>
               <td>{{ contest.durationMins }} mins</td>
@@ -48,7 +48,7 @@
                     } @else {
                       <span style="color: var(--text-muted); font-size: 13px; font-weight: bold;">Ended (Registered)</span>
                     }
-                    <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
+                    <button (click)="viewLeaderboard(contest.id, contest.title)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
                   } @else if (contest.phase === 'UPCOMING') {
                     @if (contest.status === 'NOT_REGISTERED') {
                       <button (click)="register(contest.id)" class="btn btn-primary">Register</button>
@@ -66,7 +66,7 @@
                       } @else {
                         <a [routerLink]="['/contest', contest.id]" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;">Enter Arena</a>
                       }
-                      <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
+                      <button (click)="viewLeaderboard(contest.id, contest.title)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
                     }
                   }
                 </div>

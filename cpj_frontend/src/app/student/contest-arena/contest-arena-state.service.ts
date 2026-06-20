@@ -85,13 +85,14 @@ export class ContestArenaStateService implements OnDestroy {
     if (this.loading || !this.problems[this.activeQ]) return;
     this.loading = true;
     this.consoleOutput = 'Executing code on server...';
+    const isCustomMode = this.consoleTab === 'custom';
     this.apiService.compileCode({
       contestId,
       questionId: this.problems[this.activeQ].problemId,
       language: this.selectedLang.toUpperCase(),
       code,
       customInput: this.customInput ? this.customInput.trim() : ''
-    }).subscribe({
+    }, isCustomMode).subscribe({
       next: (res) => {
         this.loading = false;
         this.runResult = res;
@@ -99,12 +100,19 @@ export class ContestArenaStateService implements OnDestroy {
           this.consoleOutput = `Compilation Error:\n\n${res.output || ''}`;
           return;
         }
-        res.testCaseResults?.forEach((tc: any, idx: number) => {
-          const isCust = idx === this.problems[this.activeQ].testCases?.length;
-          const k = isCust ? 'custom' : String(idx);
-          this.tcOutputs[k] = tc.actualOutput || '';
-          this.tcVerdicts[k] = isCust ? '' : getVerdictLabel(tc.verdict);
-        });
+        if (isCustomMode) {
+          const tc = res.testCaseResults?.[0];
+          if (tc) {
+            this.tcOutputs['custom'] = tc.actualOutput || '';
+            this.tcVerdicts['custom'] = '';
+          }
+        } else {
+          res.testCaseResults?.forEach((tc: any, idx: number) => {
+            const k = String(idx);
+            this.tcOutputs[k] = tc.actualOutput || '';
+            this.tcVerdicts[k] = getVerdictLabel(tc.verdict);
+          });
+        }
         this.updateConsoleOutput();
       },
       error: (e) => {
@@ -167,7 +175,9 @@ export class ContestArenaStateService implements OnDestroy {
     this.sseSource.addEventListener('leaderboard', (event: any) => {
       try {
         const data = JSON.parse(event.data);
-        this.leaderboard = data;
+        if (data && data.length > 0 && data[0].contestId === this.contestId) {
+          this.leaderboard = data;
+        }
       } catch (err) {
         console.error('Error parsing leaderboard SSE:', err);
       }

@@ -116,6 +116,7 @@ public class ContestControllerDocTest {
         LeaderboardEntryDto entry = LeaderboardEntryDto.builder()
                 .rank(1)
                 .userId(1L)
+                .contestId(1L)
                 .name("Sajid Khan")
                 .rollNo("22CS101")
                 .score(300)
@@ -151,6 +152,7 @@ public class ContestControllerDocTest {
                         responseFields(
                                 fieldWithPath("[].rank").description("The rank of the participant."),
                                 fieldWithPath("[].userId").description("The database ID of the participant user."),
+                                fieldWithPath("[].contestId").description("The database ID of the contest."),
                                 fieldWithPath("[].name").description("The name of the participant."),
                                 fieldWithPath("[].rollNo").description("The roll number of the participant."),
                                 fieldWithPath("[].score").description("Total score obtained by the participant."),

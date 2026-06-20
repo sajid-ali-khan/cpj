@@ -11,6 +11,7 @@ public class LeaderboardEntryDto {
 
     private final int rank;
     private final Long userId;
+    private final Long contestId;
     private final String name;
     private final String rollNo;
     private final int score;

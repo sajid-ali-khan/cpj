@@ -49,8 +49,8 @@ export class ApiService {
   getStudentRegistrations(rollNumber: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/students/${rollNumber}/registrations`, { headers: this.getHeaders() });
   }
-  compileCode(body: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/compile`, body, { headers: this.getHeaders() });
+  compileCode(body: any, custom = false): Observable<any> {
+    return this.http.post(`${this.baseUrl}/compile?custom=${custom}`, body, { headers: this.getHeaders() });
   }
   submitCode(body: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/submit`, body, { headers: this.getHeaders() });
@@ -123,8 +123,8 @@ export class ApiService {
   }
 
   // --- LAN Security & Violation features ---
-  recordStudentViolation(contestId: number, rollNumber: string, violations: number): Observable<any> {
-    return this.http.post(`${this.baseUrl}/contests/${contestId}/students/${rollNumber}/violation`, { violations }, { headers: this.getHeaders() });
+  recordStudentViolation(contestId: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/contests/${contestId}/violations`, {}, { headers: this.getHeaders() });
   }
   resetStudentViolations(rollNumber: string): Observable<any> {
     return this.http.post(`${this.baseUrl}/students/${rollNumber}/reset-violations`, {}, { headers: this.getHeaders() });

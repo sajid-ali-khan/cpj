@@ -3,10 +3,11 @@
  * Purpose: Invigilator contest manager. Handles contest scheduling and maps questions with custom weights and display orders.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/api.service';
+import { AuthService } from '../../core/auth.service';
 
 @Component({
   selector: 'app-admin-contests',
@@ -15,7 +16,7 @@ import { ApiService } from '../../core/api.service';
   templateUrl: './contests.component.html',
   styleUrl: './contests.component.css'
 })
-export class ContestsComponent implements OnInit {
+export class ContestsComponent implements OnInit, OnDestroy {
   contests: any[] = [];
   problems: any[] = [];
   showAddModal = false;
@@ -43,10 +44,19 @@ export class ContestsComponent implements OnInit {
   problemPoints: Record<number, number> = {};
   problemOrder: Record<number, number> = {};
 
-  constructor(private apiService: ApiService) {}
+  private sseSource: EventSource | null = null;
+
+  constructor(private apiService: ApiService, private authService: AuthService) {}
 
   ngOnInit(): void {
     this.loadData();
+  }
+
+  ngOnDestroy(): void {
+    if (this.sseSource) {
+      this.sseSource.close();
+      this.sseSource = null;
+    }
   }
 
   get paginatedContests(): any[] {
@@ -134,9 +144,45 @@ export class ContestsComponent implements OnInit {
         this.selectedContestDetail = data;
         this.loadLeaderboard(contestId);
         this.loadEligibleStudents(contestId);
+        this.connectSse(contestId);
       },
       error: (err) => alert(err.error?.error || 'Failed to retrieve contest details')
     });
+  }
+
+  connectSse(contestId: number): void {
+    if (this.sseSource) {
+      this.sseSource.close();
+      this.sseSource = null;
+    }
+
+    const token = this.authService.getToken();
+    if (!token) return;
+
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    this.sseSource = new EventSource(`http://${host}:8080/api/events?rollNo=${encodeURIComponent(token)}`);
+
+    this.sseSource.addEventListener('leaderboard', (event: any) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.length > 0 && data[0].contestId === contestId) {
+          this.leaderboardData = data;
+        }
+      } catch (err) {
+        console.error('Error parsing leaderboard SSE in admin:', err);
+      }
+    });
+
+    this.sseSource.onerror = (err) => {
+      console.error('Admin SSE connection error, closing...', err);
+      this.sseSource?.close();
+      this.sseSource = null;
+      setTimeout(() => {
+        if (this.selectedContestDetail && this.selectedContestDetail.contest.id === contestId) {
+          this.connectSse(contestId);
+        }
+      }, 5000);
+    };
   }
 
   loadLeaderboard(contestId: number): void {
@@ -159,6 +205,10 @@ export class ContestsComponent implements OnInit {
     this.eligibleStudents = [];
     this.studentListInput = '';
     this.loadData();
+    if (this.sseSource) {
+      this.sseSource.close();
+      this.sseSource = null;
+    }
   }
 
   addEligibleStudents(): void {

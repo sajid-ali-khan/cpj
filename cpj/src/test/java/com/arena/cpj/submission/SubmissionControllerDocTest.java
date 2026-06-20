@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -117,7 +118,7 @@ public class SubmissionControllerDocTest {
                 .consoleOutput("Execution finished successfully")
                 .testCaseResults(List.of(result))
                 .build();
-        when(submissionService.compileAndRun(any(CompileRequest.class))).thenReturn(compileResponse);
+        when(submissionService.compileAndRun(any(CompileRequest.class), anyBoolean())).thenReturn(compileResponse);
 
         CompileRequest request = new CompileRequest();
         request.setContestId(1L);
@@ -127,6 +128,7 @@ public class SubmissionControllerDocTest {
         request.setCustomInput("test input");
 
         mockMvc.perform(post("/api/compile")
+                        .param("custom", "true")
                         .header("X-Roll-No", "STU-TOKEN")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

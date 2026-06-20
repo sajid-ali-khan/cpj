@@ -35,7 +35,7 @@ public class AuthController {
         if (request.getRollNumber() == null || request.getRollNumber().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Roll number is required"));
         }
-        String rollNo = request.getRollNumber().trim();
+        String rollNo = request.getRollNumber().trim().toUpperCase();
         User user = userRepository.findByRollNo(rollNo)
                 .orElseThrow(() -> new UnauthorizedException("User not found for roll number: " + rollNo));
 

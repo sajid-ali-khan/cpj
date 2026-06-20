@@ -119,12 +119,16 @@ export class ContestArenaComponent implements OnInit, AfterViewInit {
 
   triggerViolation(reason: string): void {
     if (this.isLocked || this.showWarningModal) return;
-    this.violations++; this.warningReason = reason;
-    this.apiService.recordStudentViolation(this.state.contestId, this.state.rollNo, this.violations).subscribe(() => {
+    this.warningReason = reason;
+    this.apiService.recordStudentViolation(this.state.contestId).subscribe((res: any) => {
+      this.violations = res.violations || 0;
       if (this.violations >= 3) {
-        this.isLocked = true; this.showWarningModal = false;
+        this.isLocked = true;
+        this.showWarningModal = false;
         this.state.confirmSubmit(this.state.contestId, () => {});
-      } else this.showWarningModal = true;
+      } else {
+        this.showWarningModal = true;
+      }
     });
   }
 

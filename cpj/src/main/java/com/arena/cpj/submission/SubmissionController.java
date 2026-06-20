@@ -20,8 +20,10 @@ public class SubmissionController {
     }
 
     @PostMapping("/compile")
-    public CompileResponse compile(@RequestBody CompileRequest request) {
-        return submissionService.compileAndRun(request);
+    public CompileResponse compile(
+            @RequestBody CompileRequest request,
+            @RequestParam(value = "custom", required = false, defaultValue = "false") boolean custom) {
+        return submissionService.compileAndRun(request, custom);
     }
 
     @GetMapping("/submissions")

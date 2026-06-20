@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -49,58 +50,61 @@ public class SubmissionService {
 
     public SubmitResponse submit(User user, Long contestId, Long problemId, String code, Integer languageId) {
         log.info("=== Submission Flow Started ===");
-        log.info("Request Details - User: {}, Contest ID: {}, Problem ID: {}, Language ID: {}", 
-                 user != null ? user.getName() + " (RollNo: " + user.getRollNo() + ", ID: " + user.getId() + ")" : "Anonymous", 
-                 contestId, problemId, languageId);
- 
+        log.info("Request Details - User: {}, Contest ID: {}, Problem ID: {}, Language ID: {}",
+                user != null ? user.getName() + " (RollNo: " + user.getRollNo() + ", ID: " + user.getId() + ")"
+                        : "Anonymous",
+                contestId, problemId, languageId);
+
         try {
             validateSubmitRequest(contestId, problemId, code, languageId);
         } catch (BadRequestException e) {
             log.warn("Validation failed for submission request: {}", e.getMessage());
             throw e;
         }
- 
+
         Contest contest = contestRepository.findById(contestId)
                 .orElseThrow(() -> {
                     log.warn("Contest validation failed: Contest ID {} not found", contestId);
                     return new NotFoundException("Contest not found: " + contestId);
                 });
-        
+
         Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
                 .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
         if (entry.getStatus() == ParticipantStatus.SUBMITTED) {
-            log.warn("Contest validation failed: User ID {} has already submitted Contest ID {}", user.getId(), contestId);
+            log.warn("Contest validation failed: User ID {} has already submitted Contest ID {}", user.getId(),
+                    contestId);
             throw new ForbiddenException("You have already submitted this contest");
         }
         if (entry.getStatus() == ParticipantStatus.LOCKED) {
             log.warn("Contest validation failed: User ID {} is locked out in Contest ID {}", user.getId(), contestId);
             throw new ForbiddenException("You are locked out of this contest due to violations");
         }
-        
+
         // Guard 1: Check contest phase is LIVE
         if (contest.getPhase(Instant.now()) != ContestPhase.LIVE) {
             log.warn("Contest validation failed: Contest ID {} phase is not LIVE", contestId);
             throw new BadRequestException("Contest is not active");
         }
-        
+
         // Guard 2: Check contest hasn't expired (closes the scheduler gap)
         if (contest.isExpired()) {
             log.warn("Contest validation failed: Contest ID {} has expired", contestId);
             throw new BadRequestException("Contest has ended");
         }
- 
+
         contestProblemRepository.findByIdContestIdAndIdProblemId(contestId, problemId)
                 .orElseThrow(() -> {
-                    log.warn("Problem validation failed: Problem ID {} is not part of Contest ID {}", problemId, contestId);
+                    log.warn("Problem validation failed: Problem ID {} is not part of Contest ID {}", problemId,
+                            contestId);
                     return new BadRequestException("Problem is not part of this contest");
                 });
- 
+
         Problem problem = problemRepository.findById(problemId)
                 .orElseThrow(() -> {
                     log.warn("Problem validation failed: Problem ID {} not found", problemId);
                     return new NotFoundException("Problem not found: " + problemId);
                 });
- 
+
         Submission submission = Submission.builder()
                 .user(user)
                 .contest(contest)
@@ -111,10 +115,12 @@ public class SubmissionService {
                 .build();
         submission = submissionRepository.save(submission);
         log.info("Submission saved to DB. Generated Submission ID: {}", submission.getId());
- 
+
         Long submissionId = submission.getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            log.info("Transaction synchronization active. Registering afterCommit synchronization to dispatch submission ID: {}", submissionId);
+            log.info(
+                    "Transaction synchronization active. Registering afterCommit synchronization to dispatch submission ID: {}",
+                    submissionId);
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
@@ -176,12 +182,14 @@ public class SubmissionService {
     }
 
     @Transactional
-    public CompileResponse compileAndRun(CompileRequest request) {
-        log.info("Compile and run started - Problem ID: {}, Language: {}", request.getQuestionId(), request.getLanguage());
+    public CompileResponse compileAndRun(CompileRequest request, boolean custom) {
+        log.info("Compile and run started - Problem ID: {}, Language: {}", request.getQuestionId(),
+                request.getLanguage());
 
         User currentUser = UserContext.get();
         if (currentUser != null && currentUser.getRole() == com.arena.cpj.user.UserRole.STUDENT) {
-            Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(request.getContestId(), currentUser.getId())
+            Leaderboard entry = leaderboardRepository
+                    .findByContestIdAndUserId(request.getContestId(), currentUser.getId())
                     .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
             if (entry.getStatus() == ParticipantStatus.SUBMITTED) {
                 throw new ForbiddenException("You have already submitted this contest");
@@ -193,15 +201,16 @@ public class SubmissionService {
 
         int judge0LangId = getLanguageId(request.getLanguage());
 
-        List<TestCase> sampleCases = testCaseRepository.findByProblemIdAndIsSampleTrue(request.getQuestionId());
+        List<TestCase> sampleCases = new ArrayList<>();
 
-        if (request.getCustomInput() != null && !request.getCustomInput().isBlank()) {
+        if (!custom) {
+            sampleCases.addAll(testCaseRepository.findByProblemIdAndIsSampleTrue(request.getQuestionId()));
+        } else {
             TestCase customCase = TestCase.builder()
-                    .stdin(request.getCustomInput())
+                    .stdin(request.getCustomInput() != null ? request.getCustomInput() : "")
                     .expectedOutput("")
                     .isSample(true)
                     .build();
-            sampleCases = new java.util.ArrayList<>(sampleCases);
             sampleCases.add(customCase);
         }
 
@@ -247,7 +256,8 @@ public class SubmissionService {
                             .build();
                 }
 
-                if (verdict != Verdict.ACCEPTED && !(tc.getExpectedOutput() == null || tc.getExpectedOutput().isBlank())) {
+                if (verdict != Verdict.ACCEPTED
+                        && !(tc.getExpectedOutput() == null || tc.getExpectedOutput().isBlank())) {
                     allPassed = false;
                 }
 
@@ -264,12 +274,14 @@ public class SubmissionService {
                 consoleBuilder.append("Case #").append(i + 1).append(":\n");
                 consoleBuilder.append("Input:\n").append(tc.getStdin()).append("\n");
                 consoleBuilder.append("Expected Output:\n").append(tc.getExpectedOutput()).append("\n");
-                consoleBuilder.append("Actual Output:\n").append(res.getStdout() != null ? res.getStdout() : "").append("\n");
+                consoleBuilder.append("Actual Output:\n").append(res.getStdout() != null ? res.getStdout() : "")
+                        .append("\n");
                 if (res.getStderr() != null && !res.getStderr().isBlank()) {
                     consoleBuilder.append("Stderr:\n").append(res.getStderr()).append("\n");
                 }
                 consoleBuilder.append("Verdict: ").append(verdict).append("\n");
-                consoleBuilder.append("Time: ").append(res.getTime()).append("s, Memory: ").append(res.getMemory()).append(" KB\n\n");
+                consoleBuilder.append("Time: ").append(res.getTime()).append("s, Memory: ").append(res.getMemory())
+                        .append(" KB\n\n");
             }
 
             String finalStatus = allPassed ? "Accepted" : "Wrong Answer";
@@ -313,12 +325,18 @@ public class SubmissionService {
     }
 
     private static int getLanguageId(String language) {
-        if (language == null) return 62;
+        if (language == null)
+            return 62;
         switch (language.toLowerCase()) {
-            case "java": return 62;
-            case "cpp": case "c++": return 54;
-            case "python": return 71;
-            default: return 62;
+            case "java":
+                return 62;
+            case "cpp":
+            case "c++":
+                return 54;
+            case "python":
+                return 71;
+            default:
+                return 62;
         }
     }
 }

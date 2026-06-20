@@ -101,31 +101,27 @@ public class ContestController {
 
 
 
-    @PostMapping("/{contestId}/students/{rollNumber}/violation")
-    public ResponseEntity<?> recordViolation(
-            @PathVariable Long contestId,
-            @PathVariable String rollNumber,
-            @RequestBody Map<String, Integer> body) {
+    @PutMapping("/{contestId}/violations")
+    public ResponseEntity<?> recordViolation(@PathVariable Long contestId) {
         User currentUser = UserContext.get();
         if (currentUser == null) {
             throw new UnauthorizedException("Session invalid or expired.");
         }
-        if (currentUser.getRole() == UserRole.STUDENT && !currentUser.getRollNo().equalsIgnoreCase(rollNumber.trim())) {
-            throw new ForbiddenException("Access denied. You cannot modify other students' violations.");
+        if (currentUser.getRole() != UserRole.STUDENT) {
+            throw new ForbiddenException("Only students can record violations.");
         }
 
-        User user = userRepository.findByRollNo(rollNumber.trim())
-                .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNumber));
-
-        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
+        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, currentUser.getId())
                 .orElseThrow(() -> new NotFoundException("Student is not registered for this contest"));
 
-        int violationCount = body.getOrDefault("violations", 0);
-        entry.setViolations(violationCount);
-        if (violationCount >= 3) {
+        if (entry.getStatus() == ParticipantStatus.LOCKED) {
+            throw new ForbiddenException("Student is already locked out of this contest.");
+        }
+
+        int newViolations = entry.getViolations() + 1;
+        entry.setViolations(newViolations);
+        if (newViolations >= 3) {
             entry.setStatus(ParticipantStatus.LOCKED);
-        } else if (entry.getStatus() == ParticipantStatus.LOCKED) {
-            entry.setStatus(ParticipantStatus.ATTEMPTING);
         }
         leaderboardRepository.save(entry);
 
@@ -133,8 +129,8 @@ public class ContestController {
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
-                "violations", violationCount,
-                "status", violationCount >= 3 ? "Locked" : "Active"
+                "violations", newViolations,
+                "locked", newViolations >= 3
         ));
     }
 }
