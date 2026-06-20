@@ -43,9 +43,6 @@
               </td>
               <td>
                 <div class="actions-cell" style="display: flex; gap: 6px;">
-                  @if (contest.phase === 'UPCOMING') {
-                    <button (click)="startContest(contest.id)" class="btn btn-primary btn-small">Start</button>
-                  }
                   <button (click)="deleteContest(contest.id)" class="btn btn-danger btn-small">Delete</button>
                 </div>
               </td>
@@ -263,9 +260,6 @@
             <div style="font-size: 12px; font-weight: bold; color: var(--text-bright); margin-top: 2px;">{{ selectedContestDetail.contest.durationMins }} mins</div>
           </div>
         </div>
-        @if (selectedContestDetail.contest.phase === 'UPCOMING') {
-          <button (click)="startContest(selectedContestDetail.contest.id)" class="btn btn-primary btn-small" style="width: 100%;">Start Contest Now</button>
-        }
       </div>
 
       <!-- Make Students Eligible Card -->

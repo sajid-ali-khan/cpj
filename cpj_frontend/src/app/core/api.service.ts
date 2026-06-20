@@ -140,9 +140,6 @@ export class ApiService {
   getAdminContest(id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/contests/${id}`, { headers: this.getHeaders() });
   }
-  startContest(id: number): Observable<any> {
-    return this.http.post(`${this.baseUrl}/admin/contests/${id}/start`, {}, { headers: this.getHeaders() });
-  }
   getAdminProblem(id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/admin/problems/${id}`, { headers: this.getHeaders() });
   }

@@ -214,21 +214,6 @@ export class ContestsComponent implements OnInit {
     });
   }
 
-  startContest(contestId: number): void {
-    if (confirm('Are you sure you want to start this contest immediately? This will transition its state to LIVE.')) {
-      this.apiService.startContest(contestId).subscribe({
-        next: () => {
-          this.loadData();
-          if (this.selectedContestDetail?.contest?.id === contestId) {
-            this.viewContestDetail(contestId);
-          }
-          alert('Contest started successfully.');
-        },
-        error: (err) => alert(err.error?.error || 'Failed to start contest')
-      });
-    }
-  }
-
   deleteContest(contestId: number): void {
     if (confirm('Are you sure you want to delete this contest?')) {
       this.apiService.deleteContest(contestId).subscribe({

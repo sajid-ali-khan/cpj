@@ -37,11 +37,6 @@ public class AdminContestController {
         return adminContestService.get(id);
     }
 
-    @PostMapping("/{id}/start")
-    public ContestDetailResponse start(@PathVariable Long id) {
-        return adminContestService.start(id);
-    }
-
     @PostMapping("/{id}/end")
     public ContestDetailResponse end(@PathVariable Long id) {
         return adminContestService.end(id);

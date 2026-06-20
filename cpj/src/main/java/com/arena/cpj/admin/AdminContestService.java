@@ -9,6 +9,8 @@ import com.arena.cpj.problem.ProblemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.arena.cpj.leaderboard.LeaderboardService;
+import com.arena.cpj.event.SseService;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,6 +25,8 @@ public class AdminContestService {
     private final ContestService contestService;
     private final com.arena.cpj.submission.SubmissionRepository submissionRepository;
     private final com.arena.cpj.leaderboard.LeaderboardRepository leaderboardRepository;
+    private final LeaderboardService leaderboardService;
+    private final SseService sseService;
 
     @Transactional
     public ContestDetailResponse create(CreateContestRequest request) {
@@ -63,11 +67,6 @@ public class AdminContestService {
     }
 
     @Transactional
-    public ContestDetailResponse start(Long id) {
-        throw new BadRequestException("Manual starting is disabled. Contests start automatically at their scheduled time.");
-    }
-
-    @Transactional
     public ContestDetailResponse end(Long id) {
         Contest contest = findContest(id);
         Instant now = Instant.now();
@@ -77,8 +76,12 @@ public class AdminContestService {
         }
         
         int elapsedMins = (int) java.time.Duration.between(contest.getStartTime(), now).toMinutes();
-        contest.setDurationMins(Math.max(0, elapsedMins));
-        contestRepository.save(contest);
+        contest.setDurationMins(Math.max(1, elapsedMins));
+        contest = contestRepository.save(contest);
+        
+        // Broadcast the final leaderboard so student UIs update immediately
+        sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(id));
+        
         return toDetailResponse(contest);
     }
 
@@ -181,21 +184,8 @@ public class AdminContestService {
         }
 
         if (currentPhase == ContestPhase.LIVE) {
-            if (contest.getStartTime().compareTo(request.getStartTime()) != 0) {
-                throw new BadRequestException("Cannot change start time of a live contest");
-            }
-            List<ContestProblem> existingProblems = contestProblemRepository.findByIdContestIdOrderByDisplayOrderAsc(id);
-            if (existingProblems.size() != request.getProblems().size()) {
-                throw new BadRequestException("Cannot add or remove questions from a live contest");
-            }
-            for (ContestProblemRequest reqProb : request.getProblems()) {
-                ContestProblem existing = existingProblems.stream()
-                        .filter(ep -> ep.getProblem().getId().equals(reqProb.getProblemId()))
-                        .findFirst()
-                        .orElseThrow(() -> new BadRequestException("Cannot change questions of a live contest"));
-                if (!existing.getPoints().equals(reqProb.getPoints())) {
-                    throw new BadRequestException("Cannot modify question points while a contest is live");
-                }
+            if (!contest.getTitle().trim().equalsIgnoreCase(request.getTitle().trim())) {
+                throw new BadRequestException("Cannot change the title of an ongoing contest");
             }
         }
 

@@ -106,7 +106,8 @@ public class AuthControllerDocTest {
                                 fieldWithPath("userType").description("The type of user logging in ('student')."),
                                 fieldWithPath("user.rollNumber").description("The roll number of the logged-in student."),
                                 fieldWithPath("user.name").description("The name of the logged-in student."),
-                                fieldWithPath("user.branch").description("The branch of the student.")
+                                fieldWithPath("user.branch").description("The branch of the student."),
+                                fieldWithPath("user.email").description("The email address of the student.")
                         )
                 ));
     }

@@ -26,6 +26,7 @@
             <th>Contest Title</th>
             <th>Start Time</th>
             <th>Duration</th>
+            <th>Problems</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -34,10 +35,11 @@
             <tr>
               <td>
                 <strong style="color: #58a6ff; cursor: pointer; text-decoration: underline;" (click)="viewContestDetails(contest.id)">{{ contest.name }}</strong>
-                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">{{ contest.description }}</p>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">{{ contest.title }}</p>
               </td>
               <td>{{ contest.startTime | date:'medium' }}</td>
               <td>{{ contest.durationMins }} mins</td>
+              <td>{{ contest.problemCount }}</td>
               <td>
                 <div style="display: flex; gap: 8px; align-items: center;">
                   @if (contest.phase === 'FINISHED') {
