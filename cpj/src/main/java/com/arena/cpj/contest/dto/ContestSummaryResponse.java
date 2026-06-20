@@ -17,6 +17,5 @@ public class ContestSummaryResponse {
     private final Integer durationMins;
     private final ContestPhase phase;
     private final Integer problemCount;
-    private final String status;
-    private final Integer violations;
+    private final com.arena.cpj.leaderboard.ParticipantStatus status;
 }

@@ -111,7 +111,7 @@ public class LeaderboardService {
                             .rollNo(user.getRollNo())
                             .score(row.getScore())
                             .lastAcTime(row.getLastAcTime())
-                            .status(contest.getPhase(java.time.Instant.now()) == com.arena.cpj.contest.ContestPhase.FINISHED ? ParticipantStatus.FINISHED.name() : row.getStatus().name())
+                            .status(contest.getPhase(java.time.Instant.now()) == com.arena.cpj.contest.ContestPhase.FINISHED ? ParticipantStatus.SUBMITTED.name() : row.getStatus().name())
                             .solvedCount(row.getSolvedCount())
                             .totalQuestions(contest.getProblemCount())
                             .maxScore(contest.getMaxScore())

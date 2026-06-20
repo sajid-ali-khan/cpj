@@ -74,7 +74,7 @@ public class StudentController {
         List<Leaderboard> entries = leaderboardRepository.findByUserId(user.getId());
         for (Leaderboard entry : entries) {
             if (entry.getStatus() == ParticipantStatus.LOCKED) {
-                entry.setStatus(ParticipantStatus.WRITING);
+                entry.setStatus(ParticipantStatus.ATTEMPTING);
             }
             entry.setViolations(0);
             leaderboardRepository.save(entry);

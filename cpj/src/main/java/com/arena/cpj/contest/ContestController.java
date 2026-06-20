@@ -125,7 +125,7 @@ public class ContestController {
         if (violationCount >= 3) {
             entry.setStatus(ParticipantStatus.LOCKED);
         } else if (entry.getStatus() == ParticipantStatus.LOCKED) {
-            entry.setStatus(ParticipantStatus.WRITING);
+            entry.setStatus(ParticipantStatus.ATTEMPTING);
         }
         leaderboardRepository.save(entry);
 

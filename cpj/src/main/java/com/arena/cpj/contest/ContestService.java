@@ -107,14 +107,14 @@ public class ContestService {
             if (entry.getStatus() == ParticipantStatus.NOT_REGISTERED) {
                 throw new ForbiddenException("You must register for the contest first.");
             }
-            if (entry.getStatus() == ParticipantStatus.FINISHED) {
+            if (entry.getStatus() == ParticipantStatus.SUBMITTED) {
                 throw new ForbiddenException("You have already submitted this contest");
             }
             if (entry.getStatus() == ParticipantStatus.LOCKED) {
                 throw new ForbiddenException("You are locked out of this contest due to violations");
             }
             if (entry.getStatus() == ParticipantStatus.REGISTERED) {
-                entry.setStatus(ParticipantStatus.WRITING);
+                entry.setStatus(ParticipantStatus.ATTEMPTING);
                 leaderboardRepository.save(entry);
                 sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
             }
@@ -151,39 +151,12 @@ public class ContestService {
 
     private ContestSummaryResponse toSummary(Contest contest) {
         User currentUser = UserContext.get();
-        String status = "Not Registered";
-        Integer violations = 0;
+        ParticipantStatus status = ParticipantStatus.NOT_REGISTERED;
 
         if (currentUser != null && currentUser.getRole() == UserRole.STUDENT) {
             Optional<Leaderboard> entryOpt = leaderboardRepository.findByContestIdAndUserId(contest.getId(), currentUser.getId());
-            boolean isRegistered = entryOpt.isPresent();
-            ParticipantStatus partStatus = isRegistered ? entryOpt.get().getStatus() : ParticipantStatus.NOT_REGISTERED;
-            violations = isRegistered ? entryOpt.get().getViolations() : 0;
-
-            ContestPhase phase = contest.getPhase(Instant.now());
-
-            if (phase == ContestPhase.FINISHED) {
-                if (isRegistered && partStatus != ParticipantStatus.NOT_REGISTERED) {
-                    status = "Ended (Registered)";
-                } else {
-                    status = "Ended (Not Registered)";
-                }
-            } else if (phase == ContestPhase.UPCOMING) {
-                if (isRegistered && partStatus != ParticipantStatus.NOT_REGISTERED) {
-                    status = "Registered (Upcoming)";
-                } else {
-                    status = "Not Registered";
-                }
-            } else { // LIVE
-                if (!isRegistered || partStatus == ParticipantStatus.NOT_REGISTERED) {
-                    status = "Not Registered";
-                } else if (partStatus == ParticipantStatus.LOCKED || violations >= 3) {
-                    status = "Locked Out";
-                } else if (partStatus == ParticipantStatus.FINISHED) {
-                    status = "Submitted";
-                } else {
-                    status = "Registered";
-                }
+            if (entryOpt.isPresent()) {
+                status = entryOpt.get().getStatus();
             }
         }
 
@@ -196,7 +169,6 @@ public class ContestService {
                 .phase(contest.getPhase(Instant.now()))
                 .problemCount(contest.getProblemCount())
                 .status(status)
-                .violations(violations)
                 .build();
     }
 
@@ -256,8 +228,8 @@ public class ContestService {
         Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
                 .orElseThrow(() -> new NotFoundException("User is not registered for this contest"));
 
-        if (entry.getStatus() != ParticipantStatus.FINISHED && entry.getStatus() != ParticipantStatus.LOCKED) {
-            entry.setStatus(ParticipantStatus.FINISHED);
+        if (entry.getStatus() != ParticipantStatus.SUBMITTED && entry.getStatus() != ParticipantStatus.LOCKED) {
+            entry.setStatus(ParticipantStatus.SUBMITTED);
             leaderboardRepository.save(entry);
 
             // Broadcast the new leaderboard list via SSE

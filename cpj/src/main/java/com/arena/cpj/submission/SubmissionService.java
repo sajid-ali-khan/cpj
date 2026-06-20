@@ -68,7 +68,7 @@ public class SubmissionService {
         
         Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId())
                 .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
-        if (entry.getStatus() == ParticipantStatus.FINISHED) {
+        if (entry.getStatus() == ParticipantStatus.SUBMITTED) {
             log.warn("Contest validation failed: User ID {} has already submitted Contest ID {}", user.getId(), contestId);
             throw new ForbiddenException("You have already submitted this contest");
         }
@@ -183,7 +183,7 @@ public class SubmissionService {
         if (currentUser != null && currentUser.getRole() == com.arena.cpj.user.UserRole.STUDENT) {
             Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(request.getContestId(), currentUser.getId())
                     .orElseThrow(() -> new ForbiddenException("You are not registered for this contest"));
-            if (entry.getStatus() == ParticipantStatus.FINISHED) {
+            if (entry.getStatus() == ParticipantStatus.SUBMITTED) {
                 throw new ForbiddenException("You have already submitted this contest");
             }
             if (entry.getStatus() == ParticipantStatus.LOCKED) {

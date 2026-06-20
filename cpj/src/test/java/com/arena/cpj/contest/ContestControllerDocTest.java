@@ -75,8 +75,7 @@ public class ContestControllerDocTest {
                 .durationMins(120)
                 .phase(ContestPhase.UPCOMING)
                 .problemCount(1)
-                .status("Registered (Upcoming)")
-                .violations(0)
+                .status(com.arena.cpj.leaderboard.ParticipantStatus.REGISTERED)
                 .build();
 
         when(contestService.getCurrentContest()).thenReturn(List.of(contest));
@@ -98,8 +97,7 @@ public class ContestControllerDocTest {
                                  fieldWithPath("[].durationMins").description("Duration of the contest in minutes."),
                                  fieldWithPath("[].phase").description("Current contest phase (UPCOMING, LIVE, FINISHED)."),
                                  fieldWithPath("[].problemCount").description("The count of problems assigned to this contest."),
-                                 fieldWithPath("[].status").description("The student's status for this contest (REGISTERED, FINISHED, etc.)."),
-                                 fieldWithPath("[].violations").description("The student's violations count for this contest.")
+                                 fieldWithPath("[].status").description("The student's status enum value for this contest (REGISTERED, SUBMITTED, LOCKED, etc.).")
                          )
                  ));
     }

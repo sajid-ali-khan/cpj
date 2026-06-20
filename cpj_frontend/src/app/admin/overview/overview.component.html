@@ -94,8 +94,8 @@
             <tbody>
               @for (row of filteredLeaderboard; track row.rollNo; let idx = $index) {
                 <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 
-                                              row.status === 'FINISHED' ? 'rgba(46, 160, 67, 0.06)' : 
-                                              row.status === 'WRITING' ? 'rgba(242, 193, 46, 0.06)' : 
+                                              row.status === 'SUBMITTED' ? 'rgba(46, 160, 67, 0.06)' : 
+                                              row.status === 'ATTEMPTING' ? 'rgba(242, 193, 46, 0.06)' : 
                                               row.status === 'REGISTERED' ? 'rgba(56, 139, 253, 0.05)' : 
                                               'rgba(139, 148, 158, 0.05)'"
                     (click)="row.problems && row.problems.length > 0 && (row.expanded = !row.expanded)"

@@ -86,7 +86,8 @@ public class AuthController {
             "user", Map.of(
                 "rollNumber", user.getRollNo(),
                 "name", user.getName(),
-                "branch", user.getBranch() != null ? user.getBranch() : ""
+                "branch", user.getBranch() != null ? user.getBranch() : "",
+                "email", user.getEmail()
             ),
             "userType", "student"
         );

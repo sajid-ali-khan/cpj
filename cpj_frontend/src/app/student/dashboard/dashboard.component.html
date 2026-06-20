@@ -40,31 +40,30 @@
               <td>{{ contest.durationMins }} mins</td>
               <td>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                  @switch (contest.status) {
-                    @case ('Ended (Registered)') {
-                      <span style="color: var(--text-muted); font-size: 13px; font-weight: bold;">Ended (Registered)</span>
-                      <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
-                    }
-                    @case ('Ended (Not Registered)') {
+                  @if (contest.phase === 'FINISHED') {
+                    @if (contest.status === 'NOT_REGISTERED') {
                       <span style="color: var(--text-muted); font-size: 13px;">Ended (Not Registered)</span>
-                      <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
+                    } @else {
+                      <span style="color: var(--text-muted); font-size: 13px; font-weight: bold;">Ended (Registered)</span>
                     }
-                    @case ('Registered (Upcoming)') {
+                    <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
+                  } @else if (contest.phase === 'UPCOMING') {
+                    @if (contest.status === 'NOT_REGISTERED') {
+                      <button (click)="register(contest.id)" class="btn btn-primary">Register</button>
+                    } @else {
                       <span style="color: #58a6ff; font-size: 13px; font-weight: bold;">Registered (Upcoming)</span>
                     }
-                    @case ('Not Registered') {
+                  } @else if (contest.phase === 'LIVE') {
+                    @if (contest.status === 'NOT_REGISTERED') {
                       <button (click)="register(contest.id)" class="btn btn-primary">Register</button>
-                    }
-                    @case ('Locked Out') {
-                      <span style="color: #f85149; font-size: 13px; font-weight: bold; margin-right: 5px;">Locked Out</span>
-                      <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
-                    }
-                    @case ('Submitted') {
-                      <span style="color: var(--text-muted); font-size: 13px; font-weight: bold; margin-right: 5px;">Submitted</span>
-                      <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
-                    }
-                    @case ('Registered') {
-                      <a [routerLink]="['/contest', contest.id]" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;">Enter Arena</a>
+                    } @else {
+                      @if (contest.status === 'LOCKED') {
+                        <span style="color: #f85149; font-size: 13px; font-weight: bold; margin-right: 5px;">Locked Out</span>
+                      } @else if (contest.status === 'SUBMITTED') {
+                        <span style="color: var(--text-muted); font-size: 13px; font-weight: bold; margin-right: 5px;">Submitted</span>
+                      } @else {
+                        <a [routerLink]="['/contest', contest.id]" class="btn btn-success" style="font-size: 12px; padding: 4px 10px;">Enter Arena</a>
+                      }
                       <button (click)="viewLeaderboard(contest.id, contest.name)" class="btn" style="font-size: 12px; padding: 3px 8px;">Leaderboard</button>
                     }
                   }
@@ -133,8 +132,8 @@
           <tbody>
             @for (row of leaderboardData; track row.rollNo; let idx = $index) {
               <tr [style.background-color]="row.violations >= 3 ? 'rgba(244, 67, 54, 0.1)' : 
-                                            row.status === 'FINISHED' ? 'rgba(46, 160, 67, 0.06)' : 
-                                            row.status === 'WRITING' ? 'rgba(242, 193, 46, 0.06)' : 
+                                            row.status === 'SUBMITTED' ? 'rgba(46, 160, 67, 0.06)' : 
+                                            row.status === 'ATTEMPTING' ? 'rgba(242, 193, 46, 0.06)' : 
                                             row.status === 'REGISTERED' ? 'rgba(56, 139, 253, 0.05)' : 
                                             'rgba(139, 148, 158, 0.05)'"
                   [style.border-left]="row.rollNo === rollNo ? '4px solid #56d364' : 'none'"
