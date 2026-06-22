@@ -149,4 +149,19 @@ export class ApiService {
   updateTestCase(id: number, body: any): Observable<any> {
     return this.http.put(`${this.baseUrl}/admin/test-cases/${id}`, body, { headers: this.getHeaders() });
   }
+
+  uploadTestCaseZip(problemId: number, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post(`${this.baseUrl}/admin/problems/${problemId}/test-cases/zip`, formData, {
+      headers: this.getHeaders(true)
+    });
+  }
+
+  calibrateLimits(problemId: number, body: { language: string; code: string }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/admin/problems/${problemId}/calibrate-limits`, body, {
+      headers: this.getHeaders()
+    });
+  }
 }
+

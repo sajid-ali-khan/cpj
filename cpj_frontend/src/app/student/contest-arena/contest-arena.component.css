@@ -82,3 +82,60 @@
 .security-warning-card { border-top: 4px solid #ff9800 !important; }
 .lock-card h3 { color: #f85149 !important; }
 
+/* -- Submit Verdict Card -- */
+.submit-verdict-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-top: 10px;
+  transition: all 0.25s ease-in-out;
+}
+.submit-verdict-card.success {
+  background: rgba(56, 160, 67, 0.08);
+  border-left: 4px solid #56d364;
+}
+.submit-verdict-card.fail {
+  background: rgba(248, 81, 73, 0.08);
+  border-left: 4px solid #f85149;
+}
+.verdict-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.verdict-badge {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.verdict-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.verdict-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-bright);
+}
+.verdict-card-details {
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  color: var(--text-main);
+  flex-wrap: wrap;
+}
+.verdict-card-details strong {
+  color: var(--text-muted);
+}
+

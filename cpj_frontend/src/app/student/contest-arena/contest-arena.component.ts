@@ -7,7 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule } from '@angular/common'; import { FormsModule } from '@angular/forms';
 import { ContestArenaStateService } from './contest-arena-state.service';
 import { ApiService } from '../../core/api.service';
-import { getSavedCode, saveCode, getMonacoLanguage } from './contest-arena.helper';
+import { getSavedCode, saveCode, getMonacoLanguage, getVerdictLabel } from './contest-arena.helper';
 
 @Component({
   selector: 'app-student-contest-arena', standalone: true,
@@ -151,8 +151,9 @@ export class ContestArenaComponent implements OnInit, AfterViewInit {
       const parsed = JSON.parse(val);
       if (Array.isArray(parsed)) return parsed.map(item => item.trim()).filter(Boolean);
     } catch (e) {}
-    return [val.trim()];
+    return val.split('\n').map(item => item.trim()).filter(Boolean);
   }
+
 
   isSingleLine(val: string): boolean {
     return this.getStructureLines(val).length <= 1;
@@ -161,5 +162,9 @@ export class ContestArenaComponent implements OnInit, AfterViewInit {
   getSingleLine(val: string): string {
     const lines = this.getStructureLines(val);
     return lines.length > 0 ? lines[0] : '';
+  }
+
+  getVerdictLabel(verdict: string): string {
+    return getVerdictLabel(verdict);
   }
 }

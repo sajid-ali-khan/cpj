@@ -223,16 +223,40 @@ public class SubmissionService {
                     .build();
         }
 
+        Problem problem = problemRepository.findById(request.getQuestionId())
+                .orElseThrow(() -> new NotFoundException("Problem not found: " + request.getQuestionId()));
+
+        double defaultCpuTimeLimit = judge0Properties.getCpuTimeLimit();
+        int defaultMemoryLimitKb = judge0Properties.getMemoryLimitKb();
+
+        Double calibratedCpuTimeLimit = null;
+        Integer calibratedMemoryLimitKb = null;
+
+        if (judge0LangId == 54) { // C++
+            calibratedCpuTimeLimit = problem.getCppTimeLimit();
+            calibratedMemoryLimitKb = problem.getCppMemoryLimit();
+        } else if (judge0LangId == 71) { // Python
+            calibratedCpuTimeLimit = problem.getPythonTimeLimit();
+            calibratedMemoryLimitKb = problem.getPythonMemoryLimit();
+        } else if (judge0LangId == 62) { // Java
+            calibratedCpuTimeLimit = problem.getJavaTimeLimit();
+            calibratedMemoryLimitKb = problem.getJavaMemoryLimit();
+        }
+
+        final double finalCpuTimeLimit = calibratedCpuTimeLimit != null ? calibratedCpuTimeLimit : defaultCpuTimeLimit;
+        final int finalMemoryLimitKb = calibratedMemoryLimitKb != null ? calibratedMemoryLimitKb : defaultMemoryLimitKb;
+
         List<Judge0SubmissionRequest> judgeRequests = sampleCases.stream()
                 .map(tc -> Judge0SubmissionRequest.builder()
                         .sourceCode(request.getCode())
                         .languageId(judge0LangId)
                         .stdin(tc.getStdin())
                         .expectedOutput(tc.getExpectedOutput())
-                        .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
-                        .memoryLimitKb(judge0Properties.getMemoryLimitKb())
+                        .cpuTimeLimit(defaultCpuTimeLimit)
+                        .memoryLimitKb(defaultMemoryLimitKb)
                         .build())
                 .toList();
+
 
         try {
             List<Judge0CallbackPayload> results = judge0Client.submitBatchAndWait(judgeRequests);
@@ -254,6 +278,17 @@ public class SubmissionService {
                             .output(res.getCompileOutput())
                             .consoleOutput("")
                             .build();
+                }
+
+                Integer actualTimeMs = parseTimeMs(res.getTime());
+                Integer actualMemoryKb = res.getMemory();
+
+                if (verdict == Verdict.ACCEPTED) {
+                    if (actualTimeMs != null && actualTimeMs > (finalCpuTimeLimit * 1000)) {
+                        verdict = Verdict.TIME_LIMIT_EXCEEDED;
+                    } else if (actualMemoryKb != null && actualMemoryKb > finalMemoryLimitKb) {
+                        verdict = Verdict.MEMORY_LIMIT_EXCEEDED;
+                    }
                 }
 
                 if (verdict != Verdict.ACCEPTED
@@ -280,8 +315,8 @@ public class SubmissionService {
                     consoleBuilder.append("Stderr:\n").append(res.getStderr()).append("\n");
                 }
                 consoleBuilder.append("Verdict: ").append(verdict).append("\n");
-                consoleBuilder.append("Time: ").append(res.getTime()).append("s, Memory: ").append(res.getMemory())
-                        .append(" KB\n\n");
+                consoleBuilder.append("Time: ").append(actualTimeMs != null ? actualTimeMs + "ms" : "—").append(", Memory: ").append(actualMemoryKb != null ? actualMemoryKb + " KB" : "—")
+                        .append("\n\n");
             }
 
             String finalStatus = allPassed ? "Accepted" : "Wrong Answer";

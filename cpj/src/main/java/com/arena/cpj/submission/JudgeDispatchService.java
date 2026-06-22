@@ -42,8 +42,9 @@ public class JudgeDispatchService {
         try {
             // Step 1: Load submission and related data from DB
             // short-lived transaction/connection (Spring Data default). ──
-            Submission submission = submissionRepository.findById(submissionId)
+            Submission submission = submissionRepository.findByIdWithProblem(submissionId)
                     .orElseThrow(() -> new NotFoundException("Submission not found: " + submissionId));
+
 
             String code = submission.getCode();
             Integer languageId = submission.getLanguageId();
@@ -59,59 +60,177 @@ public class JudgeDispatchService {
                 return;
             }
 
-            // Build one request per testcase
+            double defaultCpuTimeLimit = judge0Properties.getCpuTimeLimit();
+            int defaultMemoryLimitKb = judge0Properties.getMemoryLimitKb();
+
+            Double calibratedCpuTimeLimit = null;
+            Integer calibratedMemoryLimitKb = null;
+
+            com.arena.cpj.problem.Problem problem = submission.getProblem();
+            if (languageId != null) {
+                if (languageId == 54) { // C++
+                    calibratedCpuTimeLimit = problem.getCppTimeLimit();
+                    calibratedMemoryLimitKb = problem.getCppMemoryLimit();
+                } else if (languageId == 71) { // Python
+                    calibratedCpuTimeLimit = problem.getPythonTimeLimit();
+                    calibratedMemoryLimitKb = problem.getPythonMemoryLimit();
+                } else if (languageId == 62) { // Java
+                    calibratedCpuTimeLimit = problem.getJavaTimeLimit();
+                    calibratedMemoryLimitKb = problem.getJavaMemoryLimit();
+                }
+            }
+
+            final double finalCpuTimeLimit = calibratedCpuTimeLimit != null ? calibratedCpuTimeLimit : defaultCpuTimeLimit;
+            final int finalMemoryLimitKb = calibratedMemoryLimitKb != null ? calibratedMemoryLimitKb : defaultMemoryLimitKb;
+
+            // Build one request per testcase (using generous default limits to prevent sandbox crashes)
             List<Judge0SubmissionRequest> requests = testCases.stream()
                     .map(tc -> Judge0SubmissionRequest.builder()
                             .sourceCode(code)
                             .languageId(languageId)
                             .stdin(tc.getStdin())
                             .expectedOutput(tc.getExpectedOutput())
-                            .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
-                            .memoryLimitKb(judge0Properties.getMemoryLimitKb())
+                            .cpuTimeLimit(defaultCpuTimeLimit)
+                            .memoryLimitKb(defaultMemoryLimitKb)
                             .build())
                     .toList();
 
+
             // ── Step 2: NO transaction held here. Up to ~60s, but no DB
             // connection is pinned during this call. ──
-            // Submit all testcases in one batch call, then poll until all are resolved
+            // Submit all testcases in one batch call, then poll status until all are resolved or any failure is encountered
             log.info("Dispatching batch of {} testcase(s) for submission ID: {}", requests.size(), submissionId);
-            List<Judge0CallbackPayload> results = judge0Client.submitBatchAndWait(requests);
-            log.info("Batch execution completed. Received {} result(s).", results.size());
+            List<String> tokens = judge0Client.submitBatch(requests);
+            log.info("Batch submitted {} testcase(s). Tokens: {}", tokens.size(), tokens);
 
-            // Step 3: Short transaction(s) to persist results.
-            persistJudge0Token(submissionId, results.isEmpty() ? null : results.get(0).getToken());
+            // Poll only the tokens still pending, until all resolved or any failure is encountered
+            java.util.Map<String, Judge0CallbackPayload> resolved = new java.util.LinkedHashMap<>();
+            java.util.Set<String> pending = new java.util.LinkedHashSet<>(tokens);
 
-            // Time and memory are taken from the worst-case (last) testcase that ran.
+            int pollIntervalMs = 1500;
+            int maxPolls = 40;
+            boolean earlyTermination = false;
+            String failingToken = null;
+
+            for (int attempt = 0; attempt < maxPolls && !pending.isEmpty(); attempt++) {
+                try {
+                    Thread.sleep(pollIntervalMs);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException("Interrupted while polling Judge0", e);
+                }
+
+                String tokenParam = String.join(",", pending);
+                List<Judge0CallbackPayload> pollResults = judge0Client.getBatch(tokenParam);
+
+                for (Judge0CallbackPayload r : pollResults) {
+                    int statusId = r.getStatus() != null ? r.getStatus().getId() : 0;
+                    boolean stillRunning = statusId == 1 || statusId == 2; // In Queue or Processing
+
+                    if (!stillRunning) {
+                        resolved.put(r.getToken(), r);
+                        pending.remove(r.getToken());
+
+                        // Decode and evaluate the verdict of this resolved test case
+                        Verdict verdict = Judge0StatusMapper.toVerdict(statusId);
+                        Integer actualTimeMs = parseTimeMs(r.getTime());
+                        Integer actualMemoryKb = r.getMemory();
+
+                        // Enforce calibrated limits locally if Judge0 returned ACCEPTED
+                        if (verdict == Verdict.ACCEPTED) {
+                            if (actualTimeMs != null && actualTimeMs > (finalCpuTimeLimit * 1000)) {
+                                verdict = Verdict.TIME_LIMIT_EXCEEDED;
+                            } else if (actualMemoryKb != null && actualMemoryKb > finalMemoryLimitKb) {
+                                verdict = Verdict.MEMORY_LIMIT_EXCEEDED;
+                            }
+                        }
+
+                        if (verdict != Verdict.ACCEPTED) {
+                            earlyTermination = true;
+                            failingToken = r.getToken();
+                            break;
+                        }
+                    }
+                }
+
+                if (earlyTermination) {
+                    log.info("Early termination triggered by failing token: {}", failingToken);
+                    break;
+                }
+
+                if (pending.isEmpty()) {
+                    log.info("Batch resolved after {} poll(s)", attempt + 1);
+                    break;
+                }
+
+                log.info("Batch poll {}/{}: {}/{} token(s) still pending",
+                        attempt + 1, maxPolls, pending.size(), tokens.size());
+            }
+
+            // Re-assemble/finalize results in original submission order
+            persistJudge0Token(submissionId, tokens.isEmpty() ? null : tokens.get(0));
+
+            // Time and memory are taken from the maximum (worst-case) resource usage across all test cases.
             Verdict finalVerdict = Verdict.ACCEPTED;
             Integer timeMs = null;
             Integer memoryKb = null;
             int passedCount = 0;
 
-            for (int i = 0; i < results.size(); i++) {
-                Judge0CallbackPayload result = results.get(i);
+            for (int i = 0; i < tokens.size(); i++) {
+                String token = tokens.get(i);
+                Judge0CallbackPayload result = resolved.get(token);
+
+                if (result == null) {
+                    if (!earlyTermination) {
+                        if (finalVerdict == Verdict.ACCEPTED) {
+                            finalVerdict = Verdict.TIME_LIMIT_EXCEEDED;
+                            log.info("TestCase #{} did not resolve in time. Treating as TIME_LIMIT_EXCEEDED.", i + 1);
+                        }
+                    }
+                    continue;
+                }
+
                 int statusId = result.getStatus() != null ? result.getStatus().getId() : 0;
                 Verdict verdict = Judge0StatusMapper.toVerdict(statusId);
 
-                log.debug("TestCase #{} -> token={}, status={} ({}), verdict={}, time={}s, memory={}KB",
-                        i + 1, result.getToken(),
-                        result.getStatus() != null ? result.getStatus().getDescription() : "UNKNOWN",
-                        statusId, verdict, result.getTime(), result.getMemory());
-                log.trace("TestCase #{} stdout: {}", i + 1, result.getStdout());
-                log.trace("TestCase #{} stderr: {}", i + 1, result.getStderr());
-                log.trace("TestCase #{} compileOutput: {}", i + 1, result.getCompileOutput());
+                Integer actualTimeMs = parseTimeMs(result.getTime());
+                Integer actualMemoryKb = result.getMemory();
 
-                timeMs = parseTimeMs(result.getTime());
-                memoryKb = result.getMemory();
+                if (verdict == Verdict.ACCEPTED) {
+                    if (actualTimeMs != null && actualTimeMs > (finalCpuTimeLimit * 1000)) {
+                        verdict = Verdict.TIME_LIMIT_EXCEEDED;
+                    } else if (actualMemoryKb != null && actualMemoryKb > finalMemoryLimitKb) {
+                        verdict = Verdict.MEMORY_LIMIT_EXCEEDED;
+                    }
+                }
+
+                log.debug("TestCase #{} -> token={}, status={} ({}), verdict={}, time={}ms, memory={}KB",
+                        i + 1, token,
+                        result.getStatus() != null ? result.getStatus().getDescription() : "UNKNOWN",
+                        statusId, verdict, actualTimeMs, actualMemoryKb);
+
+                if (actualTimeMs != null) {
+                    if (timeMs == null || actualTimeMs > timeMs) {
+                        timeMs = actualTimeMs;
+                    }
+                }
+                if (actualMemoryKb != null) {
+                    if (memoryKb == null || actualMemoryKb > memoryKb) {
+                        memoryKb = actualMemoryKb;
+                    }
+                }
 
                 if (verdict != Verdict.ACCEPTED) {
-                    finalVerdict = verdict;
-                    log.info("TestCase #{} failed with verdict: {}. Stopping evaluation.", i + 1, verdict);
-                    break;
+                    if (finalVerdict == Verdict.ACCEPTED) {
+                        finalVerdict = verdict;
+                        log.info("TestCase #{} failed with verdict: {}.", i + 1, verdict);
+                    }
+                } else {
+                    passedCount++;
                 }
-                passedCount++;
             }
 
-            int totalCount = results.size();
+            int totalCount = tokens.size();
 
             log.info(
                     "Finalizing judge result for submission ID {}: finalVerdict={}, timeMs={}, memoryKb={}, passed={}/{}",

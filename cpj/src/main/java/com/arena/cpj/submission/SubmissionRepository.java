@@ -7,9 +7,13 @@ import java.util.Optional;
 
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
+    @org.springframework.data.jpa.repository.Query("select s from Submission s join fetch s.problem where s.id = :id")
+    Optional<Submission> findByIdWithProblem(Long id);
+
     /**
      * Callback handler lookup: Judge0 returns a token, we find the submission to update.
      */
+
     Optional<Submission> findByJudge0Token(String judge0Token);
 
     /**

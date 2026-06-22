@@ -28,6 +28,7 @@ export class ContestArenaStateService implements OnDestroy {
   submissions: any[] = [];
   leaderboard: any[] = [];
   runResult: any = null;
+  submitVerdict: any = null;
 
   constructor(private apiService: ApiService, private authService: AuthService) {}
 
@@ -126,6 +127,12 @@ export class ContestArenaStateService implements OnDestroy {
     if (this.submitting || !this.problems[this.activeQ]) return;
     this.submitting = true;
     this.consoleOutput = 'Evaluating...';
+    // Clear compileRun colors, outputs, and previous submit verdict on submit
+    this.tcOutputs = {};
+    this.tcVerdicts = {};
+    this.runResult = null;
+    this.submitVerdict = null;
+
     this.apiService.submitCode({
       contestId,
       questionId: this.problems[this.activeQ].problemId,
@@ -162,8 +169,8 @@ export class ContestArenaStateService implements OnDestroy {
         if (data.submissionId === this.pendingSubmissionId) {
           this.submitting = false;
           this.pendingSubmissionId = null;
-          const vLabel = getVerdictLabel(data.verdict);
-          this.consoleOutput = `Verdict: ${vLabel}\nPassed: ${data.passedCount != null ? data.passedCount : '—'}/${data.totalCount != null ? data.totalCount : '—'}\nTime: ${data.timeMs != null ? data.timeMs + 'ms' : '—'}\nMemory: ${data.memoryKb != null ? data.memoryKb + ' KB' : '—'}`;
+          this.submitVerdict = data;
+          this.consoleOutput = ''; // Clear "Evaluating..." to go back to normal
           this.loadSubmissions(this.contestId);
           this.loadLeaderboard(this.contestId);
         }

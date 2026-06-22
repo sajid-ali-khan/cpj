@@ -33,6 +33,20 @@ export class ProblemsComponent implements OnInit {
   // New Details Modal State
   selectedProblemDetail: any = null;
 
+  // Tab control
+  activeDetailTab = 'description';
+
+  // Zip upload state
+  selectedZipFile: File | null = null;
+  uploadingZip = false;
+
+  // Calibration state
+  calibrationLanguage = 'cpp';
+  calibrationCode = '';
+  calibrating = false;
+  calibrationResult: any = null;
+
+
   // Edit Test Case Modal State
   showEditTestCase = false;
   editingTestCaseId: number | null = null;
@@ -96,12 +110,10 @@ export class ProblemsComponent implements OnInit {
 
   saveProblem(): void {
     if (!this.title || !this.description) return;
-    const inputStr = JSON.stringify(this.inputStructureItems.map(item => item.trim()).filter(Boolean));
-    const outputStr = JSON.stringify(this.outputStructureItems.map(item => item.trim()).filter(Boolean));
 
     this.apiService.createProblem({
       title: this.title, description: this.description, constraints: this.constraints,
-      difficulty: this.difficulty, inputStructure: inputStr, outputStructure: outputStr
+      difficulty: this.difficulty, inputStructure: this.inputStructure, outputStructure: this.outputStructure
     }).subscribe({
       next: (res) => {
         this.loadProblems();
@@ -109,6 +121,7 @@ export class ProblemsComponent implements OnInit {
         this.selectedProblemTitle = res.title;
         this.testCases = [];
         this.step = 2;
+
       },
       error: (err) => this.showAlert(err.error?.error || 'Failed to create problem')
     });
@@ -207,6 +220,10 @@ export class ProblemsComponent implements OnInit {
 
   viewProblemDetail(id: number): void {
     this.selectedProblemId = id;
+    this.activeDetailTab = 'description';
+    this.calibrationResult = null;
+    this.calibrationCode = '';
+    this.selectedZipFile = null;
     this.apiService.getAdminProblem(id).subscribe({
       next: (data) => {
         this.selectedProblemDetail = data;
@@ -222,7 +239,63 @@ export class ProblemsComponent implements OnInit {
     this.selectedProblemId = null;
     this.selectedProblemTitle = '';
     this.testCases = [];
+    this.activeDetailTab = 'description';
+    this.calibrationResult = null;
+    this.calibrationCode = '';
+    this.selectedZipFile = null;
   }
+
+  onZipFileSelected(event: any): void {
+    const file = event.target?.files?.[0];
+    if (file) {
+      this.selectedZipFile = file;
+    }
+  }
+
+  uploadZipFile(): void {
+    if (this.selectedProblemId === null || !this.selectedZipFile) return;
+    this.uploadingZip = true;
+    this.apiService.uploadTestCaseZip(this.selectedProblemId, this.selectedZipFile).subscribe({
+      next: (data) => {
+        this.uploadingZip = false;
+        this.selectedZipFile = null;
+        this.loadTestCasesForCurrent();
+        this.showAlert('Successfully uploaded ' + data.length + ' test cases!');
+      },
+      error: (err) => {
+        this.uploadingZip = false;
+        this.showAlert(err.error?.error || 'Failed to upload test cases ZIP');
+      }
+    });
+  }
+
+  runCalibration(): void {
+    if (this.selectedProblemId === null || !this.calibrationCode) return;
+    this.calibrating = true;
+    this.calibrationResult = null;
+    const payload = {
+      language: this.calibrationLanguage,
+      code: this.calibrationCode
+    };
+    this.apiService.calibrateLimits(this.selectedProblemId, payload).subscribe({
+      next: (res) => {
+        this.calibrating = false;
+        this.calibrationResult = res;
+
+        // Refresh selected problem detail to update limits shown in the description tab
+        this.apiService.getAdminProblem(this.selectedProblemId!).subscribe(data => {
+          this.selectedProblemDetail = data;
+        });
+
+        this.showAlert('Calibration complete! New resource limits have been saved.');
+      },
+      error: (err) => {
+        this.calibrating = false;
+        this.showAlert(err.error?.error || 'Calibration failed');
+      }
+    });
+  }
+
 
   deleteProblem(id: number): void {
     this.showConfirm('Are you sure you want to delete this problem? By default this performs a soft-delete.', () => {

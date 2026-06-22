@@ -38,4 +38,11 @@ public class AdminProblemController {
     public ProblemResponse update(@PathVariable Long id, @RequestBody CreateProblemRequest request) {
         return adminProblemService.update(id, request);
     }
+
+    @PostMapping("/{id}/calibrate-limits")
+    public com.arena.cpj.admin.dto.CalibrateLimitsResponse calibrateLimits(@PathVariable Long id,
+                                                                           @RequestBody com.arena.cpj.admin.dto.CalibrateLimitsRequest request) {
+        return adminProblemService.calibrateLimits(id, request);
+    }
 }
+

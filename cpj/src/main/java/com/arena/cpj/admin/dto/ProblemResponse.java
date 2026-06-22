@@ -18,4 +18,12 @@ public class ProblemResponse {
     private final String outputStructure;
     private final int testCaseCount;
     private final java.util.List<TestCaseResponse> testCases;
+
+    private final Double javaTimeLimit;
+    private final Integer javaMemoryLimit;
+    private final Double cppTimeLimit;
+    private final Integer cppMemoryLimit;
+    private final Double pythonTimeLimit;
+    private final Integer pythonMemoryLimit;
 }
+

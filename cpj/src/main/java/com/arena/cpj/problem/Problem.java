@@ -39,7 +39,26 @@ public class Problem {
     @Column(name = "output_structure", columnDefinition = "TEXT")
     private String outputStructure;
 
+    @Column(name = "java_time_limit")
+    private Double javaTimeLimit;
+
+    @Column(name = "java_memory_limit")
+    private Integer javaMemoryLimit;
+
+    @Column(name = "cpp_time_limit")
+    private Double cppTimeLimit;
+
+    @Column(name = "cpp_memory_limit")
+    private Integer cppMemoryLimit;
+
+    @Column(name = "python_time_limit")
+    private Double pythonTimeLimit;
+
+    @Column(name = "python_memory_limit")
+    private Integer pythonMemoryLimit;
+
     @Column(nullable = false)
     @Builder.Default
     private boolean deleted = false;
 }
+

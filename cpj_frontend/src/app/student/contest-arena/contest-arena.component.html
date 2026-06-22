@@ -94,6 +94,23 @@
           </button>
         </div>
         <div id="editor-container" class="editor-box"></div>
+
+        @if (state.submitVerdict) {
+          <div class="submit-verdict-card" [class.success]="state.submitVerdict.verdict === 'ACCEPTED'" [class.fail]="state.submitVerdict.verdict !== 'ACCEPTED'">
+            <div class="verdict-card-header">
+              <span class="verdict-badge" [style.color]="state.submitVerdict.verdict === 'ACCEPTED' ? '#56d364' : '#f85149'">
+                Verdict: {{ getVerdictLabel(state.submitVerdict.verdict) }}
+              </span>
+              <button (click)="state.submitVerdict = null" class="verdict-close-btn" title="Close">✕</button>
+            </div>
+            <div class="verdict-card-details">
+              <span><strong>Passed:</strong> {{ state.submitVerdict.passedCount != null ? state.submitVerdict.passedCount : '0' }}/{{ state.submitVerdict.totalCount != null ? state.submitVerdict.totalCount : '0' }}</span>
+              <span><strong>Time:</strong> {{ state.submitVerdict.timeMs != null ? state.submitVerdict.timeMs + 'ms' : '—' }}</span>
+              <span><strong>Memory:</strong> {{ state.submitVerdict.memoryKb != null ? state.submitVerdict.memoryKb + ' KB' : '—' }}</span>
+            </div>
+          </div>
+        }
+
         @if (!isEditorExpanded) {
           <div class="console-box">
             <div class="console-header">

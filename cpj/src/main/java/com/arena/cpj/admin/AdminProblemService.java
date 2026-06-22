@@ -29,6 +29,9 @@ public class AdminProblemService {
     private final TestCaseRepository testCaseRepository;
     private final ContestProblemRepository contestProblemRepository;
     private final ContestRepository contestRepository;
+    private final com.arena.cpj.judge0.Judge0Client judge0Client;
+    private final com.arena.cpj.config.Judge0Properties judge0Properties;
+
 
     @Transactional
     public ProblemResponse create(CreateProblemRequest request) {
@@ -131,6 +134,12 @@ public class AdminProblemService {
                 .outputStructure(problem.getOutputStructure())
                 .testCaseCount(tcs.size())
                 .testCases(testCaseResponses)
+                .javaTimeLimit(problem.getJavaTimeLimit())
+                .javaMemoryLimit(problem.getJavaMemoryLimit())
+                .cppTimeLimit(problem.getCppTimeLimit())
+                .cppMemoryLimit(problem.getCppMemoryLimit())
+                .pythonTimeLimit(problem.getPythonTimeLimit())
+                .pythonMemoryLimit(problem.getPythonMemoryLimit())
                 .build();
     }
 
@@ -147,4 +156,117 @@ public class AdminProblemService {
         problem.setOutputStructure(request.getOutputStructure());
         return toResponse(problemRepository.save(problem));
     }
+
+    @Transactional
+    public com.arena.cpj.admin.dto.CalibrateLimitsResponse calibrateLimits(Long problemId, com.arena.cpj.admin.dto.CalibrateLimitsRequest request) {
+        Problem problem = findProblem(problemId);
+
+        if (request.getLanguage() == null || request.getLanguage().isBlank()) {
+            throw new BadRequestException("language is required");
+        }
+        if (request.getCode() == null || request.getCode().isBlank()) {
+            throw new BadRequestException("code is required");
+        }
+
+        int languageId;
+        String lang = request.getLanguage().toLowerCase();
+        if (lang.equals("java")) {
+            languageId = 62;
+        } else if (lang.equals("cpp") || lang.equals("c++")) {
+            languageId = 54;
+        } else if (lang.equals("python")) {
+            languageId = 71;
+        } else {
+            throw new BadRequestException("Unsupported language for calibration: " + request.getLanguage());
+        }
+
+        List<TestCase> testCases = testCaseRepository.findByProblemId(problemId);
+        if (testCases.isEmpty()) {
+            throw new BadRequestException("Cannot calibrate: problem has no test cases");
+        }
+
+        // Build Judge0 requests with default limits for safety during calibration
+        List<com.arena.cpj.judge0.Judge0SubmissionRequest> judgeRequests = testCases.stream()
+                .map(tc -> com.arena.cpj.judge0.Judge0SubmissionRequest.builder()
+                        .sourceCode(request.getCode())
+                        .languageId(languageId)
+                        .stdin(tc.getStdin())
+                        .expectedOutput(tc.getExpectedOutput())
+                        .cpuTimeLimit(judge0Properties.getCpuTimeLimit())
+                        .memoryLimitKb(judge0Properties.getMemoryLimitKb())
+                        .build())
+                .toList();
+
+        List<com.arena.cpj.judge0.Judge0CallbackPayload> results;
+        try {
+            results = judge0Client.submitBatchAndWait(judgeRequests);
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to run code on Judge0: " + e.getMessage());
+        }
+
+        double maxTime = 0.0;
+        int maxMemory = 0;
+
+        for (int i = 0; i < results.size(); i++) {
+            com.arena.cpj.judge0.Judge0CallbackPayload res = results.get(i);
+            int statusId = res.getStatus() != null ? res.getStatus().getId() : 0;
+            if (statusId != 3) { // 3 = Accepted
+                String desc = res.getStatus() != null ? res.getStatus().getDescription() : "UNKNOWN";
+                String errOutput = res.getStderr() != null ? res.getStderr() : "";
+                if (res.getCompileOutput() != null && !res.getCompileOutput().isBlank()) {
+                    errOutput = res.getCompileOutput();
+                }
+                throw new BadRequestException("Correct solution failed on testcase #" + (i + 1) + ". Status: " + desc + ". Error: " + errOutput);
+            }
+
+            if (res.getTime() != null) {
+                try {
+                    double t = Double.parseDouble(res.getTime());
+                    if (t > maxTime) {
+                        maxTime = t;
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
+
+            if (res.getMemory() != null) {
+                int m = res.getMemory();
+                if (m > maxMemory) {
+                    maxMemory = m;
+                }
+            }
+        }
+
+        // Update limits based on language with language-specific safety floors
+        int computedMemoryLimit;
+        double computedTimeLimit;
+        if (languageId == 62) { // Java
+            computedTimeLimit = Math.max(2.0, maxTime * 2.0);
+            computedMemoryLimit = Math.max(262144, maxMemory * 2); // 256MB floor for JVM
+            problem.setJavaTimeLimit(Math.round(computedTimeLimit * 100.0) / 100.0);
+            problem.setJavaMemoryLimit(computedMemoryLimit);
+        } else if (languageId == 54) { // C++
+            computedTimeLimit = Math.max(1.0, maxTime * 2.0);
+            computedMemoryLimit = Math.max(65536, maxMemory * 2);  // 64MB floor
+            problem.setCppTimeLimit(Math.round(computedTimeLimit * 100.0) / 100.0);
+            problem.setCppMemoryLimit(computedMemoryLimit);
+        } else if (languageId == 71) { // Python
+            computedTimeLimit = Math.max(2.0, maxTime * 2.0);
+            computedMemoryLimit = Math.max(131072, maxMemory * 2); // 128MB floor for Python
+            problem.setPythonTimeLimit(Math.round(computedTimeLimit * 100.0) / 100.0);
+            problem.setPythonMemoryLimit(computedMemoryLimit);
+        } else {
+            computedTimeLimit = Math.max(1.0, maxTime * 2.0);
+            computedMemoryLimit = Math.max(32768, maxMemory * 2);
+        }
+
+        problemRepository.save(problem);
+
+        return com.arena.cpj.admin.dto.CalibrateLimitsResponse.builder()
+                .maxTime(maxTime)
+                .maxMemory(maxMemory)
+                .computedTimeLimit(computedTimeLimit)
+                .computedMemoryLimit(computedMemoryLimit)
+                .build();
+    }
 }
+

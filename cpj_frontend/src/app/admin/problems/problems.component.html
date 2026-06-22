@@ -72,111 +72,244 @@
     <span style="color: var(--text-bright); font-weight: bold;">{{ selectedProblemDetail.title }}</span>
   </div>
 
-  <div class="detail-container" style="display: flex; gap: 20px; align-items: flex-start;">
-    <!-- Left Side: Problem Specifications -->
-    <div class="card" style="flex: 1.2; padding: 20px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; margin: 0;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
-        <h2 style="margin: 0; color: var(--text-bright);">#{{ selectedProblemDetail.id }} - {{ selectedProblemDetail.title }}</h2>
-        <span class="difficulty-badge" [style.color]="selectedProblemDetail.difficulty === 'HARD' ? '#da3633' : selectedProblemDetail.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'" style="font-weight: bold; font-size: 14px;">
-          {{ selectedProblemDetail.difficulty }}
-        </span>
-      </div>
+  <!-- Tab Header -->
+  <div style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; gap: 10px;">
+    <button (click)="activeDetailTab = 'description'" 
+            [style.color]="activeDetailTab === 'description' ? 'var(--text-bright)' : 'var(--text-muted)'"
+            [style.border-bottom]="activeDetailTab === 'description' ? '2px solid #58a6ff' : '2px solid transparent'"
+            style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s;">
+      Description
+    </button>
+    <button (click)="activeDetailTab = 'testcases'" 
+            [style.color]="activeDetailTab === 'testcases' ? 'var(--text-bright)' : 'var(--text-muted)'"
+            [style.border-bottom]="activeDetailTab === 'testcases' ? '2px solid #58a6ff' : '2px solid transparent'"
+            style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s;">
+      Testcases
+    </button>
+    <button (click)="activeDetailTab = 'sourcecode'" 
+            [style.color]="activeDetailTab === 'sourcecode' ? 'var(--text-bright)' : 'var(--text-muted)'"
+            [style.border-bottom]="activeDetailTab === 'sourcecode' ? '2px solid #58a6ff' : '2px solid transparent'"
+            style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s;">
+      Source Code (Calibrate)
+    </button>
+  </div>
 
-      <div style="margin-bottom: 20px;">
-        <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 15px;">Description</h4>
-        <p style="margin: 0; color: var(--text-main); font-size: 14px; line-height: 1.5; white-space: pre-wrap;">{{ selectedProblemDetail.description }}</p>
-      </div>
+  <!-- Tab Contents -->
+  <div class="detail-container" style="box-sizing: border-box; width: 100%;">
+    
+    <!-- 1. Description Tab -->
+    @if (activeDetailTab === 'description') {
+      <div class="card" style="padding: 20px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; margin: 0; width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px;">
+          <h2 style="margin: 0; color: var(--text-bright);">#{{ selectedProblemDetail.id }} - {{ selectedProblemDetail.title }}</h2>
+          <span class="difficulty-badge" [style.color]="selectedProblemDetail.difficulty === 'HARD' ? '#da3633' : selectedProblemDetail.difficulty === 'MEDIUM' ? '#58a6ff' : '#56d364'" style="font-weight: bold; font-size: 14px;">
+            {{ selectedProblemDetail.difficulty }}
+          </span>
+        </div>
 
-      @if (selectedProblemDetail.constraints) {
         <div style="margin-bottom: 20px;">
-          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 15px;">Constraints</h4>
-          <pre style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 13px; color: var(--text-bright); margin: 0; overflow-x: auto;">{{ selectedProblemDetail.constraints }}</pre>
+          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 15px;">Description</h4>
+          <p style="margin: 0; color: var(--text-main); font-size: 14px; line-height: 1.5; white-space: pre-wrap;">{{ selectedProblemDetail.description }}</p>
         </div>
-      }
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-        <div>
-          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 14px;">Input Format Structure</h4>
-          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.4; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">{{ selectedProblemDetail.inputStructure || '—' }}</div>
+        @if (selectedProblemDetail.constraints) {
+          <div style="margin-bottom: 20px;">
+            <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 15px;">Constraints</h4>
+            <pre style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-family: monospace; font-size: 13px; color: var(--text-bright); margin: 0; overflow-x: auto;">{{ selectedProblemDetail.constraints }}</pre>
+          </div>
+        }
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+          <div>
+            <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 14px;">Input Format Structure</h4>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.4; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">{{ selectedProblemDetail.inputStructure || '—' }}</div>
+          </div>
+          <div>
+            <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 14px;">Output Format Structure</h4>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.4; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">{{ selectedProblemDetail.outputStructure || '—' }}</div>
+          </div>
         </div>
-        <div>
-          <h4 style="margin: 0 0 6px 0; color: var(--text-bright); font-size: 14px;">Output Format Structure</h4>
-          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 13px; color: var(--text-muted); line-height: 1.4; max-height: 150px; overflow-y: auto; white-space: pre-wrap;">{{ selectedProblemDetail.outputStructure || '—' }}</div>
+
+        <!-- Language Specific Resource Limits Section -->
+        <div style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; box-sizing: border-box; width: 100%;">
+          <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Language Limits Configuration</h4>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
+                <th style="padding: 8px 10px;">Language</th>
+                <th style="padding: 8px 10px;">Time Limit</th>
+                <th style="padding: 8px 10px;">Memory Limit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 8px 10px; font-weight: bold; color: var(--text-bright);">Java</td>
+                <td style="padding: 8px 10px;">{{ selectedProblemDetail.javaTimeLimit != null ? selectedProblemDetail.javaTimeLimit + ' s' : '— (Default)' }}</td>
+                <td style="padding: 8px 10px;">{{ selectedProblemDetail.javaMemoryLimit != null ? (selectedProblemDetail.javaMemoryLimit / 1024).toFixed(0) + ' MB' : '— (Default)' }}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 8px 10px; font-weight: bold; color: var(--text-bright);">C++</td>
+                <td style="padding: 8px 10px;">{{ selectedProblemDetail.cppTimeLimit != null ? selectedProblemDetail.cppTimeLimit + ' s' : '— (Default)' }}</td>
+                <td style="padding: 8px 10px;">{{ selectedProblemDetail.cppMemoryLimit != null ? (selectedProblemDetail.cppMemoryLimit / 1024).toFixed(0) + ' MB' : '— (Default)' }}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 8px 10px; font-weight: bold; color: var(--text-bright);">Python</td>
+                <td style="padding: 8px 10px;">{{ selectedProblemDetail.pythonTimeLimit != null ? selectedProblemDetail.pythonTimeLimit + ' s' : '— (Default)' }}</td>
+                <td style="padding: 8px 10px;">{{ selectedProblemDetail.pythonMemoryLimit != null ? (selectedProblemDetail.pythonMemoryLimit / 1024).toFixed(0) + ' MB' : '— (Default)' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </div>
+    }
 
-    <!-- Right Side: Test Cases Display (formatted like results panel) -->
-    <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; box-sizing: border-box;">
-      <!-- Add Test Case Card -->
-      <div class="card card-form" style="padding: 15px; margin: 0; border: 1px solid var(--border-color); border-radius: 6px;">
-        <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Add Test Case</h4>
-        <div class="card-form-row" style="display: flex; gap: 10px; margin-bottom: 10px;">
-          <div class="form-col" style="flex: 1;">
-            <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">Stdin Input</label>
-            <textarea [(ngModel)]="tcInput" placeholder="Stdin input..." style="width: 100%; box-sizing: border-box; height: 60px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; resize: none;"></textarea>
-          </div>
-          <div class="form-col" style="flex: 1;">
-            <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">Expected Output *</label>
-            <textarea [(ngModel)]="tcOutput" placeholder="Expected execution output..." style="width: 100%; box-sizing: border-box; height: 60px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; resize: none;"></textarea>
+    <!-- 2. Testcases Tab -->
+    @if (activeDetailTab === 'testcases') {
+      <div style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+        
+        <!-- ZIP File Bulk Upload -->
+        <div class="card card-form" style="padding: 20px; border: 1px solid var(--border-color); border-radius: 6px; margin: 0;">
+          <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Bulk Upload Test Cases (ZIP)</h4>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 15px 0;">
+            Upload a ZIP archive containing paired test case files: <code>&lt;number&gt;.in</code> for stdin inputs and <code>&lt;number&gt;.out</code> for expected outputs. 
+            The first 3 numbered test cases will automatically be set as sample test cases. Existing test cases for this problem will be cleared upon successful upload.
+          </p>
+          <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+            <input type="file" (change)="onZipFileSelected($event)" accept=".zip" style="font-size: 13px; color: var(--text-main);" />
+            <button (click)="uploadZipFile()" class="btn btn-success" [disabled]="!selectedZipFile || uploadingZip" style="font-size: 12px; padding: 6px 12px;">
+              {{ uploadingZip ? 'Uploading ZIP...' : 'Upload ZIP' }}
+            </button>
           </div>
         </div>
-        <div class="card-form-actions" style="display: flex; justify-content: space-between; align-items: center;">
-          <div class="checkbox-container" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-            <input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" />
-            <label for="tcIsSample" style="font-size: 12px; color: var(--text-main); cursor: pointer;">Is Sample Test Case</label>
+
+        <div style="display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; width: 100%;">
+          <!-- Add Single Test Case Card -->
+          <div class="card card-form" style="flex: 1; min-width: 300px; padding: 15px; margin: 0; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box;">
+            <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Add Test Case</h4>
+            <div class="card-form-row" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px;">
+              <div class="form-col" style="flex: 1;">
+                <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">Stdin Input</label>
+                <textarea [(ngModel)]="tcInput" placeholder="Stdin input..." style="width: 100%; box-sizing: border-box; height: 80px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; resize: vertical;"></textarea>
+              </div>
+              <div class="form-col" style="flex: 1;">
+                <label style="font-size: 11px; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 4px;">Expected Output *</label>
+                <textarea [(ngModel)]="tcOutput" placeholder="Expected execution output..." style="width: 100%; box-sizing: border-box; height: 80px; font-family: monospace; font-size: 12px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px; resize: vertical;"></textarea>
+              </div>
+            </div>
+            <div class="card-form-actions" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="checkbox-container" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="tcIsSample" [(ngModel)]="tcIsSample" />
+                <label for="tcIsSample" style="font-size: 12px; color: var(--text-main); cursor: pointer;">Is Sample Test Case</label>
+              </div>
+              <button (click)="addTestCase()" class="btn btn-success btn-add-tc" style="font-size: 12px; padding: 4px 10px;" [disabled]="!tcOutput">Add Testcase</button>
+            </div>
           </div>
-          <button (click)="addTestCase()" class="btn btn-success btn-add-tc" style="font-size: 12px; padding: 4px 10px;" [disabled]="!tcOutput">Add Testcase</button>
+
+          <!-- Configured Test Cases Table -->
+          <div class="card" style="flex: 1.5; min-width: 400px; padding: 15px; margin: 0; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box;">
+            <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Configured Test Cases</h4>
+            @if (testCases.length === 0) {
+              <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">No testcases loaded for this problem. Add one or upload ZIP.</div>
+            } @else {
+              <div style="overflow-x: auto; max-height: 380px;">
+                <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.01);">
+                      <th style="padding: 6px 8px; text-align: left; width: 80px;">Type</th>
+                      <th style="padding: 6px 8px; text-align: left;">Stdin (Click to inspect)</th>
+                      <th style="padding: 6px 8px; text-align: left;">Expected (Click to inspect)</th>
+                      <th style="padding: 6px 8px; text-align: right; width: 120px;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (tc of testCases; track tc.id) {
+                      <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 6px 8px;">
+                          <span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'" style="font-weight: bold; font-size: 11px;">
+                            {{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}
+                          </span>
+                        </td>
+                        <td class="mono-cell clickable font-mono text-xs" style="padding: 6px 8px; max-width: 150px; font-family: monospace; font-size: 12px; cursor: pointer;" (click)="activeInspector = tc">
+                          <div class="truncated">{{ truncate(tc.stdin) }}</div>
+                          <div class="size-badge">{{ getSize(tc.stdin) }}</div>
+                        </td>
+                        <td class="mono-cell clickable font-mono text-xs" style="padding: 6px 8px; max-width: 150px; font-family: monospace; font-size: 12px; cursor: pointer;" (click)="activeInspector = tc">
+                          <div class="truncated">{{ truncate(tc.expectedOutput) }}</div>
+                          <div class="size-badge">{{ getSize(tc.expectedOutput) }}</div>
+                        </td>
+                        <td style="padding: 6px 8px; text-align: right;">
+                          <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                            <button (click)="openEditTestCase(tc)" class="btn btn-small" style="padding: 2px 6px; font-size: 11px;">Edit</button>
+                            <button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc" style="padding: 2px 6px; font-size: 11px;">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
         </div>
       </div>
+    }
 
-      <!-- Configured Test Cases (formatted similarly to compilation results panel display) -->
-      <div class="card" style="padding: 15px; margin: 0; border: 1px solid var(--border-color); border-radius: 6px;">
-        <h4 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 15px;">Configured Test Cases</h4>
-        @if (testCases.length === 0) {
-          <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px;">No testcases loaded for this problem. Add one above.</div>
-        } @else {
-          <div style="overflow-x: auto; max-height: 380px;">
-            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-              <thead>
-                <tr style="border-bottom: 1px solid var(--border-color); background: rgba(255,255,255,0.01);">
-                  <th style="padding: 6px 8px; text-align: left; width: 80px;">Type</th>
-                  <th style="padding: 6px 8px; text-align: left;">Stdin (Click to inspect)</th>
-                  <th style="padding: 6px 8px; text-align: left;">Expected (Click to inspect)</th>
-                  <th style="padding: 6px 8px; text-align: right; width: 120px;">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (tc of testCases; track tc.id) {
-                  <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 6px 8px;">
-                      <span class="type-badge" [style.color]="tc.isSample ? '#56d364' : '#8b949e'" style="font-weight: bold; font-size: 11px;">
-                        {{ tc.isSample ? 'SAMPLE' : 'HIDDEN' }}
-                      </span>
-                    </td>
-                    <td class="mono-cell clickable font-mono text-xs" style="padding: 6px 8px; max-width: 150px; font-family: monospace; font-size: 12px; cursor: pointer;" (click)="activeInspector = tc">
-                      <div class="truncated">{{ truncate(tc.stdin) }}</div>
-                      <div class="size-badge">{{ getSize(tc.stdin) }}</div>
-                    </td>
-                    <td class="mono-cell clickable font-mono text-xs" style="padding: 6px 8px; max-width: 150px; font-family: monospace; font-size: 12px; cursor: pointer;" (click)="activeInspector = tc">
-                      <div class="truncated">{{ truncate(tc.expectedOutput) }}</div>
-                      <div class="size-badge">{{ getSize(tc.expectedOutput) }}</div>
-                    </td>
-                    <td style="padding: 6px 8px; text-align: right;">
-                      <div style="display: flex; gap: 6px; justify-content: flex-end;">
-                        <button (click)="openEditTestCase(tc)" class="btn btn-small" style="padding: 2px 6px; font-size: 11px;">Edit</button>
-                        <button (click)="deleteTestCase(tc.id)" class="btn btn-danger btn-delete-tc" style="padding: 2px 6px; font-size: 11px;">Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+    <!-- 3. Source Code Tab (Calibrate Limits) -->
+    @if (activeDetailTab === 'sourcecode') {
+      <div class="card card-form" style="padding: 20px; border: 1px solid var(--border-color); border-radius: 6px; margin: 0; width: 100%; box-sizing: border-box;">
+        <h3 style="margin: 0 0 10px 0; color: var(--text-bright); font-size: 16px;">Calibrate Resource Limits</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 15px; line-height: 1.4;">
+          Paste or write the correct/optimal solution code for this problem. The code will be compiled and executed against all configured test cases. 
+          The maximum run-time and memory consumption will be calculated, multiplied by a 2x safety margin, and saved as language limits in the database.
+        </p>
+
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 13px; font-weight: bold; color: var(--text-main); display: block; margin-bottom: 6px;">Calibration Language</label>
+          <select [(ngModel)]="calibrationLanguage" style="background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; font-size: 13px; width: 220px; outline: none; cursor: pointer;">
+            <option value="cpp">C++</option>
+            <option value="java">Java</option>
+            <option value="python">Python</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="font-size: 13px; font-weight: bold; color: var(--text-main); display: block; margin-bottom: 6px;">Correct Solution Code</label>
+          <textarea [(ngModel)]="calibrationCode" placeholder="Paste your correct, optimal solution here..." style="width: 100%; height: 350px; font-family: monospace; font-size: 13px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; resize: vertical; box-sizing: border-box; outline: none; line-height: 1.5;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 15px; align-items: center;">
+          <button (click)="runCalibration()" class="btn btn-primary" [disabled]="!calibrationCode || calibrating" style="padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer;">
+            {{ calibrating ? 'Calibrating limits against all test cases...' : 'Run Calibration' }}
+          </button>
+        </div>
+
+        <!-- Calibration Results Display -->
+        @if (calibrationResult) {
+          <div style="margin-top: 20px; background: rgba(56, 139, 253, 0.1); border: 1px solid rgba(56, 139, 253, 0.4); border-radius: 6px; padding: 15px;">
+            <h4 style="margin: 0 0 10px 0; color: #58a6ff; font-size: 14px; font-weight: bold;">Calibration Success!</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 13px; color: var(--text-main);">
+              <div>
+                <strong>Max Execution Time:</strong> {{ calibrationResult.maxTime }} s
+              </div>
+              <div>
+                <strong>Max Memory Usage:</strong> {{ (calibrationResult.maxMemory / 1024).toFixed(2) }} MB
+              </div>
+              <div>
+                <strong style="color: var(--text-bright);">Computed Time Limit (2x):</strong> {{ calibrationResult.computedTimeLimit }} s
+              </div>
+              <div>
+                <strong style="color: var(--text-bright);">Computed Memory Limit (2x):</strong> {{ (calibrationResult.computedMemoryLimit / 1024).toFixed(0) }} MB
+              </div>
+            </div>
+            <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+              The computed time & memory limits have been successfully saved for <strong>{{ calibrationLanguage.toUpperCase() }}</strong>.
+            </p>
           </div>
         }
       </div>
-    </div>
+    }
   </div>
+
 }
 
 <!-- Modal: Add Problem Workflow -->
@@ -201,33 +334,16 @@
 
         <div class="form-row" style="margin-bottom: 15px; display: flex; gap: 15px;">
           <div class="form-col" style="flex: 1;">
-            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
-              <span>Input Structure Lines</span>
-              <button type="button" (click)="addInputLine()" class="btn btn-small" style="padding: 2px 8px; font-size: 11px;">+ Add Line</button>
-            </label>
-            @for (item of inputStructureItems; track idx; let idx = $index) {
-              <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
-                <span style="font-family: monospace; font-size: 12px; color: #8b949e;">{{ idx + 1 }}.</span>
-                <input type="text" [(ngModel)]="inputStructureItems[idx]" placeholder="e.g. First line contains N" style="flex: 1;" />
-                <button type="button" (click)="removeInputLine(idx)" class="btn btn-danger btn-small" style="padding: 4px 8px; font-size: 12px;" [disabled]="inputStructureItems.length <= 1 && !inputStructureItems[0]">✕</button>
-              </div>
-            }
+            <label class="form-label">Input Structure Format</label>
+            <textarea [(ngModel)]="inputStructure" placeholder="e.g. First line contains N&#10;Second line contains N integers" style="width: 100%; box-sizing: border-box; height: 100px; font-family: inherit; font-size: 13px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; resize: vertical; outline: none;"></textarea>
           </div>
 
           <div class="form-col" style="flex: 1;">
-            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
-              <span>Output Structure Lines</span>
-              <button type="button" (click)="addOutputLine()" class="btn btn-small" style="padding: 2px 8px; font-size: 11px;">+ Add Line</button>
-            </label>
-            @for (item of outputStructureItems; track idx; let idx = $index) {
-              <div style="display: flex; gap: 6px; margin-bottom: 6px; align-items: center;">
-                <span style="font-family: monospace; font-size: 12px; color: #8b949e;">{{ idx + 1 }}.</span>
-                <input type="text" [(ngModel)]="outputStructureItems[idx]" placeholder="e.g. Print N integers" style="flex: 1;" />
-                <button type="button" (click)="removeOutputLine(idx)" class="btn btn-danger btn-small" style="padding: 4px 8px; font-size: 12px;" [disabled]="outputStructureItems.length <= 1 && !outputStructureItems[0]">✕</button>
-              </div>
-            }
+            <label class="form-label">Output Structure Format</label>
+            <textarea [(ngModel)]="outputStructure" placeholder="e.g. Print N integers separated by space" style="width: 100%; box-sizing: border-box; height: 100px; font-family: inherit; font-size: 13px; background: #0d1117; color: var(--text-bright); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px; resize: vertical; outline: none;"></textarea>
           </div>
         </div>
+
 
         <div class="form-actions" style="margin-top: 15px;">
           <button (click)="cancelAddProblem()" class="btn">Cancel</button>

@@ -1,16 +1,19 @@
 package com.arena.cpj.problem;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
 
     /**
-     * Fetches all test cases (hidden + sample) for a problem.
-     * Used when building the batch payload for Judge0.
+     * Fetches all test cases (hidden + sample) for a problem, sorted so that sample cases
+     * are evaluated first, followed by remaining hidden test cases sorted by ID.
      */
-    List<TestCase> findByProblemId(Long problemId);
+    @Query("SELECT t FROM TestCase t WHERE t.problem.id = :problemId ORDER BY t.isSample DESC, t.id ASC")
+    List<TestCase> findByProblemId(@Param("problemId") Long problemId);
 
     /**
      * Fetches only sample test cases — useful for displaying
@@ -18,3 +21,4 @@ public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
      */
     List<TestCase> findByProblemIdAndIsSampleTrue(Long problemId);
 }
+
