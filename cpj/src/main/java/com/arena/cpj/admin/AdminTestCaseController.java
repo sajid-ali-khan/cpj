@@ -38,5 +38,11 @@ public class AdminTestCaseController {
         adminTestCaseService.delete(id);
     }
 
+    @PostMapping(value = "/api/admin/problems/{problemId}/test-cases/zip", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public List<TestCaseResponse> uploadZip(@PathVariable Long problemId,
+                                            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return adminTestCaseService.uploadZip(problemId, file);
+    }
+
 
 }
