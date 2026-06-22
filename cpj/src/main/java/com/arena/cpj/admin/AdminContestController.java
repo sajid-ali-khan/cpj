@@ -72,9 +72,9 @@ public class AdminContestController {
         adminContestService.delete(id);
     }
 
-    @DeleteMapping("/{contestId}/registrations/{userId}")
-    public ResponseEntity<?> deleteStudentRegistration(@PathVariable Long contestId, @PathVariable Long userId) {
-        adminContestService.deleteStudentRegistration(contestId, userId);
+    @DeleteMapping("/registrations/{registrationId}")
+    public ResponseEntity<?> deleteStudentRegistration(@PathVariable Long registrationId) {
+        adminContestService.deleteStudentRegistration(registrationId);
         return ResponseEntity.ok(Map.of("success", true, "message", "Student registration deleted successfully"));
     }
 }

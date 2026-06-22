@@ -36,7 +36,7 @@ public class StudentController {
             throw new ForbiddenException("Access denied. You cannot view other students' registrations.");
         }
 
-        User user = userRepository.findByRollNo(rollNumber.trim())
+        User user = userRepository.findByRollNo(rollNumber.trim().toUpperCase())
                 .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNumber));
 
         if (user.isDeleted()) {
@@ -64,7 +64,7 @@ public class StudentController {
             throw new ForbiddenException("Admin access required");
         }
 
-        User user = userRepository.findByRollNo(rollNumber.trim())
+        User user = userRepository.findByRollNo(rollNumber.trim().toUpperCase())
                 .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNumber));
 
         if (user.isDeleted()) {

@@ -136,6 +136,7 @@ public class ContestService {
                     return ContestProblemSummaryResponse.builder()
                             .problemId(cp.getProblem().getId())
                             .title(cp.getProblem().getTitle())
+                            .mediaLink(cp.getProblem().getMediaLink())
                             .description(cp.getProblem().getDescription())
                             .constraints(cp.getProblem().getConstraints())
                             .difficulty(cp.getProblem().getDifficulty())
@@ -200,7 +201,7 @@ public class ContestService {
             if (rollNo == null || rollNo.trim().isEmpty()) {
                 continue;
             }
-            User user = userRepository.findByRollNo(rollNo.trim())
+            User user = userRepository.findByRollNo(rollNo.trim().toUpperCase())
                     .orElseThrow(() -> new NotFoundException("User not found for roll number: " + rollNo));
 
             boolean exists = leaderboardRepository.findByContestIdAndUserId(contestId, user.getId()).isPresent();
@@ -252,9 +253,10 @@ public class ContestService {
     }
 
     @Transactional
-    public void deleteStudentRegistration(Long contestId, Long userId) {
-        Leaderboard entry = leaderboardRepository.findByContestIdAndUserId(contestId, userId)
-                .orElseThrow(() -> new NotFoundException("Registration not found for contest: " + contestId + " and user: " + userId));
+    public void deleteStudentRegistration(Long registrationId) {
+        Leaderboard entry = leaderboardRepository.findById(registrationId)
+                .orElseThrow(() -> new NotFoundException("Registration not found with Id: " + registrationId));
+        Long contestId = entry.getContest().getId();
         leaderboardRepository.delete(entry);
         sseService.broadcastLeaderboard(leaderboardService.getLeaderboard(contestId));
     }

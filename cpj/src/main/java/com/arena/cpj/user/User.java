@@ -48,4 +48,15 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private java.util.List<com.arena.cpj.auth.OtpVerification> otpVerifications;
+
+    public void setRollNo(String rollNo) {
+        this.rollNo = rollNo != null ? rollNo.trim().toUpperCase() : null;
+    }
+
+    public static class UserBuilder {
+        public UserBuilder rollNo(String rollNo) {
+            this.rollNo = rollNo != null ? rollNo.trim().toUpperCase() : null;
+            return this;
+        }
+    }
 }

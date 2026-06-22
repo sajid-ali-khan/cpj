@@ -1,6 +1,5 @@
 package com.arena.cpj.contest;
 
-import com.arena.cpj.contest.dto.ContestProblemSummaryResponse;
 import com.arena.cpj.contest.dto.ContestSummaryResponse;
 import com.arena.cpj.event.SseService;
 import com.arena.cpj.leaderboard.LeaderboardRepository;

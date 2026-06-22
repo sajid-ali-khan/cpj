@@ -21,7 +21,7 @@ public class AdminUserService {
     public UserResponse create(CreateUserRequest request) {
         validate(request);
 
-        if (userRepository.findByRollNo(request.getRollNo().trim()).isPresent()) {
+        if (userRepository.findByRollNo(request.getRollNo().trim().toUpperCase()).isPresent()) {
             throw new BadRequestException("Roll number already exists: " + request.getRollNo());
         }
 
@@ -88,7 +88,7 @@ public class AdminUserService {
             throw new com.arena.cpj.common.NotFoundException("User not found with ID: " + id);
         }
 
-        String newRollNo = request.getRollNo().trim();
+        String newRollNo = request.getRollNo().trim().toUpperCase();
         userRepository.findByRollNo(newRollNo).ifPresent(existing -> {
             if (!existing.getId().equals(id)) {
                 throw new BadRequestException("Roll number already exists: " + newRollNo);

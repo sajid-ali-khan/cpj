@@ -274,7 +274,7 @@ public class AdminContestService {
     }
 
     @Transactional
-    public void deleteStudentRegistration(Long contestId, Long userId) {
-        contestService.deleteStudentRegistration(contestId, userId);
+    public void deleteStudentRegistration(Long registrationId) {
+        contestService.deleteStudentRegistration(registrationId);
     }
 }

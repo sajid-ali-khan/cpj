@@ -61,7 +61,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "OTP code is required"));
         }
 
-        String rollNo = request.getRollNumber().trim();
+        String rollNo = request.getRollNumber().trim().toUpperCase();
         User user = userRepository.findByRollNo(rollNo)
                 .orElseThrow(() -> new UnauthorizedException("User not found for roll number: " + rollNo));
 
@@ -103,7 +103,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Password is required"));
         }
 
-        String username = request.getUsername().trim();
+        String username = request.getUsername().trim().toUpperCase();
         User user = userRepository.findByRollNo(username)
                 .orElseThrow(() -> new UnauthorizedException("Admin user not found: " + username));
 

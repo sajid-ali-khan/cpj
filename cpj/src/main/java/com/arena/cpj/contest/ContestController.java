@@ -31,7 +31,6 @@ public class ContestController {
     private final ContestService contestService;
     private final LeaderboardRepository leaderboardRepository;
     private final LeaderboardService leaderboardService;
-    private final UserRepository userRepository;
     private final SseService sseService;
 
     @GetMapping("/current")

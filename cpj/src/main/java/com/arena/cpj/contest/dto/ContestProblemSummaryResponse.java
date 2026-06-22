@@ -14,6 +14,7 @@ public class ContestProblemSummaryResponse {
     private final String constraints;
     private final Difficulty difficulty;
     private final Integer points;
+    private final String mediaLink;
     private final Integer displayOrder;
     private final String inputStructure;
     private final String outputStructure;
