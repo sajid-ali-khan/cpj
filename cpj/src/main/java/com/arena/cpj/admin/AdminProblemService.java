@@ -83,8 +83,19 @@ public class AdminProblemService {
 
     @Transactional(readOnly = true)
     public List<ProblemResponse> list() {
-        return problemRepository.findAllByDeletedFalseOrderByIdAsc().stream()
-                .map(this::toResponse)
+        List<Problem> problems = problemRepository.findAllByDeletedFalseOrderByIdAsc();
+        List<Object[]> counts = testCaseRepository.countByProblemIdGroupByProblemId();
+        java.util.Map<Long, Long> countMap = counts.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return problems.stream()
+                .map(problem -> toResponseWithoutTestCases(
+                        problem,
+                        countMap.getOrDefault(problem.getId(), 0L).intValue()
+                ))
                 .toList();
     }
 
@@ -134,6 +145,27 @@ public class AdminProblemService {
                 .outputStructure(problem.getOutputStructure())
                 .testCaseCount(tcs.size())
                 .testCases(testCaseResponses)
+                .javaTimeLimit(problem.getJavaTimeLimit())
+                .javaMemoryLimit(problem.getJavaMemoryLimit())
+                .cppTimeLimit(problem.getCppTimeLimit())
+                .cppMemoryLimit(problem.getCppMemoryLimit())
+                .pythonTimeLimit(problem.getPythonTimeLimit())
+                .pythonMemoryLimit(problem.getPythonMemoryLimit())
+                .build();
+    }
+
+    private ProblemResponse toResponseWithoutTestCases(Problem problem, int testCaseCount) {
+        return ProblemResponse.builder()
+                .id(problem.getId())
+                .title(problem.getTitle())
+                .description(problem.getDescription())
+                .constraints(problem.getConstraints())
+                .difficulty(problem.getDifficulty())
+                .mediaLink(problem.getMediaLink())
+                .inputStructure(problem.getInputStructure())
+                .outputStructure(problem.getOutputStructure())
+                .testCaseCount(testCaseCount)
+                .testCases(null)
                 .javaTimeLimit(problem.getJavaTimeLimit())
                 .javaMemoryLimit(problem.getJavaMemoryLimit())
                 .cppTimeLimit(problem.getCppTimeLimit())

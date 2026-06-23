@@ -20,5 +20,8 @@ public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
      * examples to the student in the problem view (Phase 3).
      */
     List<TestCase> findByProblemIdAndIsSampleTrue(Long problemId);
+
+    @Query("SELECT t.problem.id, COUNT(t) FROM TestCase t GROUP BY t.problem.id")
+    List<Object[]> countByProblemIdGroupByProblemId();
 }
 
