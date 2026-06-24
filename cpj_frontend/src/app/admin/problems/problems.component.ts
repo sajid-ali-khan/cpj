@@ -311,10 +311,15 @@ export class ProblemsComponent implements OnInit {
 
   openEditTestCase(tc: any): void {
     this.editingTestCaseId = tc.id;
-    this.editTcInput = tc.stdin;
-    this.editTcOutput = tc.expectedOutput;
-    this.editTcIsSample = tc.isSample;
-    this.showEditTestCase = true;
+    this.apiService.getTestCase(tc.id).subscribe({
+      next: (fullTc) => {
+        this.editTcInput = fullTc.stdin;
+        this.editTcOutput = fullTc.expectedOutput;
+        this.editTcIsSample = fullTc.isSample;
+        this.showEditTestCase = true;
+      },
+      error: () => this.showAlert('Failed to retrieve full test case details')
+    });
   }
 
   saveEditedTestCase(): void {

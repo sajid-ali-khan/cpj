@@ -51,8 +51,15 @@ public class AdminTestCaseService {
             throw new NotFoundException("Problem not found: " + problemId);
         }
         return testCaseRepository.findByProblemId(problemId).stream()
-                .map(this::toResponse)
+                .map(this::toTruncatedResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TestCaseResponse get(Long id) {
+        TestCase testCase = testCaseRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Test case not found: " + id));
+        return toResponse(testCase);
     }
 
     @Transactional
@@ -71,6 +78,26 @@ public class AdminTestCaseService {
                 .expectedOutput(testCase.getExpectedOutput())
                 .isSample(testCase.isSample())
                 .build();
+    }
+
+    private TestCaseResponse toTruncatedResponse(TestCase testCase) {
+        return TestCaseResponse.builder()
+                .id(testCase.getId())
+                .problemId(testCase.getProblem().getId())
+                .stdin(truncate(testCase.getStdin()))
+                .expectedOutput(truncate(testCase.getExpectedOutput()))
+                .isSample(testCase.isSample())
+                .build();
+    }
+
+    private String truncate(String text) {
+        if (text == null) {
+            return null;
+        }
+        if (text.length() <= 40) {
+            return text;
+        }
+        return text.substring(0, 40) + "...";
     }
 
     @Transactional
@@ -211,7 +238,7 @@ public class AdminTestCaseService {
         }
 
         List<TestCase> saved = testCaseRepository.saveAll(newTestCases);
-        return saved.stream().map(this::toResponse).toList();
+        return saved.stream().map(this::toTruncatedResponse).toList();
     }
 
     private String readEntryContent(java.util.zip.ZipInputStream zipIn) throws java.io.IOException {

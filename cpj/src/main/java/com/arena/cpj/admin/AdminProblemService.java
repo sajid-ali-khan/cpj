@@ -31,6 +31,7 @@ public class AdminProblemService {
     private final ContestRepository contestRepository;
     private final com.arena.cpj.judge0.Judge0Client judge0Client;
     private final com.arena.cpj.config.Judge0Properties judge0Properties;
+    private final AdminTestCaseService adminTestCaseService;
 
 
     @Transactional
@@ -123,16 +124,7 @@ public class AdminProblemService {
     }
 
     private ProblemResponse toResponse(Problem problem) {
-        List<TestCase> tcs = testCaseRepository.findByProblemId(problem.getId());
-        List<TestCaseResponse> testCaseResponses = tcs.stream()
-                .map(tc -> TestCaseResponse.builder()
-                        .id(tc.getId())
-                        .problemId(tc.getProblem().getId())
-                        .stdin(tc.getStdin())
-                        .expectedOutput(tc.getExpectedOutput())
-                        .isSample(tc.isSample())
-                        .build())
-                .toList();
+        List<TestCaseResponse> testCaseResponses = adminTestCaseService.list(problem.getId());
 
         return ProblemResponse.builder()
                 .id(problem.getId())
@@ -143,7 +135,7 @@ public class AdminProblemService {
                 .mediaLink(problem.getMediaLink())
                 .inputStructure(problem.getInputStructure())
                 .outputStructure(problem.getOutputStructure())
-                .testCaseCount(tcs.size())
+                .testCaseCount(testCaseResponses.size())
                 .testCases(testCaseResponses)
                 .javaTimeLimit(problem.getJavaTimeLimit())
                 .javaMemoryLimit(problem.getJavaMemoryLimit())

@@ -149,6 +149,9 @@ export class ApiService {
   updateTestCase(id: number, body: any): Observable<any> {
     return this.http.put(`${this.baseUrl}/admin/test-cases/${id}`, body, { headers: this.getHeaders() });
   }
+  getTestCase(id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/admin/test-cases/${id}`, { headers: this.getHeaders() });
+  }
 
   uploadTestCaseZip(problemId: number, file: File): Observable<any> {
     const formData = new FormData();

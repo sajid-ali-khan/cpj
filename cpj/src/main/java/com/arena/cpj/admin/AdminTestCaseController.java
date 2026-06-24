@@ -26,7 +26,10 @@ public class AdminTestCaseController {
         adminTestCaseService.update(id, request);
     }
 
-
+    @GetMapping("/api/admin/test-cases/{id}")
+    public TestCaseResponse get(@PathVariable Long id) {
+        return adminTestCaseService.get(id);
+    }
 
     @GetMapping("/api/admin/problems/{problemId}/test-cases")
     public List<TestCaseResponse> list(@PathVariable Long problemId) {
